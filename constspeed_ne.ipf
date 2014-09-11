@@ -58,6 +58,7 @@ Window ConstSpeedAnalysis() : Panel
 	Display/W=(215,12,903,555)/HOST=#  
 	RenameWindow #,G0
 	SetActiveSubwindow ##
+	setwindow # hook(mine)=myhook
 //	g_showExtFlag=2
 EndMacro
 
@@ -100,18 +101,11 @@ Function waveBoxController(LB_Struct):listboxcontrol
 	wave/T waveBox= root:g_waveBox
 	wave waveBoxSelect=root:g_waveBoxSelect
 	wave/T drawinglist=root:g_panelDrawingList
-	NVAR ms=root:multiSelec
+	NVAR ms=root:g_multiSelec
 	
 	Variable ii,n,j
 	n=numpnts(waveBox)
 	switch(LB_Struct.eventcode)
-		case 1:
-			make/O/N=(n) root:g_waveBoxSelect_dup
-			wave wbsd=root:g_waveBoxSelect_dup
-			for(ii=0;ii<n;ii+=1)
-				wbsd[ii]=waveBoxSelect[ii][0][0]
-			endfor
-		break
 		case 4:
 		case 5:	
 			wave wbsd=root:g_waveBoxSelect_dup
@@ -130,6 +124,11 @@ Function waveBoxController(LB_Struct):listboxcontrol
 			endfor	
 			updateInfoBox()	
 			drawPanelGraph()
+			make/O/N=(n) root:g_waveBoxSelect_dup
+			wave wbsd=root:g_waveBoxSelect_dup
+			for(ii=0;ii<n;ii+=1)
+				wbsd[ii]=waveBoxSelect[ii][0][0]
+			endfor
 	endswitch
 end
 
