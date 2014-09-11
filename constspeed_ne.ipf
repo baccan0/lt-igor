@@ -4,6 +4,7 @@ constant NUMWLCFITPARA=4
 Function initConstSpeedPara()
 	Make/O/T/N=0 g_waveBox
 	Make/O/N=0 g_waveBoxSelect
+	make/O/N=0 g_waveBoxSelect_dup
 	Make/O/W/U g_waveBoxColor={{0,0,0},{65535,0,0},{0,65535,0},{0,0,65535},{0,65535,65535}}
 	MatrixTranspose g_waveBoxColor
 	Make/O/T/N=(0,3) g_infoBox
@@ -22,6 +23,8 @@ Function initConstSpeedPara()
 //	Variable/G g_insertFlag=0
 //	Variable/G g_isSpeedSetScale=0
 //	Variable/G g_showExtFlag=0
+	
+	Variable/G g_multiSelec=0
 	
 	String/G g_currentFittingTrace=""
 	Variable/G g_saveFittingFlag=0
@@ -61,6 +64,7 @@ EndMacro
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////hook func
 Function myhook(s)
 	Struct WMWinHookStruct &s
+	NVAR ms=root: g_multiSelec
 	switch(s.eventCode)
 		case 11:
 			switch(s.keyCode)
@@ -83,6 +87,9 @@ Function myhook(s)
 				case 67://C
 					fitAndCalibrate("")
 				break
+				case 109://m
+					ms=!ms
+				break
 			endswitch
 	endswitch
 end
@@ -93,12 +100,26 @@ Function waveBoxController(LB_Struct):listboxcontrol
 	wave/T waveBox= root:g_waveBox
 	wave waveBoxSelect=root:g_waveBoxSelect
 	wave/T drawinglist=root:g_panelDrawingList
-
+	NVAR ms=root:multiSelec
+	
 	Variable ii,n,j
 	n=numpnts(waveBox)
 	switch(LB_Struct.eventcode)
+		case 1:
+			make/O/N=(n) root:g_waveBoxSelect_dup
+			wave wbsd=root:g_waveBoxSelect_dup
+			for(ii=0;ii<n;ii+=1)
+				wbsd[ii]=waveBoxSelect[ii][0][0]
+			endfor
+		break
 		case 4:
 		case 5:	
+			wave wbsd=root:g_waveBoxSelect_dup
+			if(ms)
+				for(ii=0;ii<n;ii+=1)
+					waveBoxSelect[ii][0][0]=waveBoxSelect[ii][0][0]%^(wbsd[ii]&1)
+				endfor
+			endif
 			deletepoints 0,numpnts(drawinglist),drawinglist
 			for(ii=0;ii<n;ii+=1)
 				if(waveBoxSelect[ii][0][0]&1)
