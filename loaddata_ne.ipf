@@ -56,11 +56,11 @@ Function InitPara(ctrlname):buttoncontrol
 	Variable/G g_highspeed=1
 	Variable/G g_lowspeed=100
 	Variable/G g_ncolumn=0
-	Variable/G g_isinserted=0
+	Variable/G g_insertFlag=0
 //	Variable/G g_initTime=0
 	Variable/G g_cycleToTime=1000
 	Variable/G g_peakInfoDimension=7
-	Variable/G g_jumpInfoDimension=3
+//	Variable/G g_jumpInfoDimension=3
 	NewDataFolder root:constSpeed 
 	NewDataFolder root:constForce
 	NewDataFolder root:display
@@ -86,15 +86,15 @@ end
 
 Function insertArtificial(cyclecountWave,distanceWave,tensionWave)
 	//*****here is for inserting aritificial points, however I dont want to make too much artificial
-	//***** points, 3 would be high bound
+	//***** points, 3 would be high enough
 	wave cyclecountWave,distanceWave,tensionwave
-	NVAR isInserted=root:g_isInserted
+//	NVAR isInserted=root:g_isInserted
 	Variable ii=0
 	Variable gap
 	NVAR highspeed=root:g_highspeed
 	NVAR lowspeed=root:g_lowspeed
 	if(highspeed<0)
-		isInserted=1
+//		isInserted=1
 		Note/NOCR cyclecountWave,"isInserted=1;"
 		Note/NOCR distanceWave,"isInserted=1;"
 		Note/NOCR tensionWave,"isInserted=1;"
@@ -119,7 +119,7 @@ Function insertArtificial(cyclecountWave,distanceWave,tensionWave)
 	Note/NOCR cyclecountWave,"isInserted=1;"
 	Note/NOCR distanceWave,"isInserted=1;"
 	Note/NOCR tensionWave,"isInserted=1;"
-	isInserted=1
+//	isInserted=1
 	//*****end		
 end
 
@@ -423,7 +423,7 @@ Function constForceRecorder(startFlag,endFlag,preForce)
 	Wave TensionWave=$TensionName
 	Wave cyclecountWave=$cyclecountName
 	NVAR numConstForce=g_numConstForce
-	NVAR isInserted=root:g_isInserted
+//	NVAR isInserted=root:g_isInserted
 	NVAR isForceSetScale=root:g_isForceSetScale
 	NVAR insertFlag=root:g_insertFlag
 //	NVAR initTime=root:g_initTime
@@ -458,7 +458,7 @@ Function constForceRecorder(startFlag,endFlag,preForce)
 	Note/NOCR temptension, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
 	Note/NOCR tempdistance, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
 	Note/NOCR tempdistance,"begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"startpos="+num2str(startFlag)+";"
-	if(isInserted)
+	if(insertFlag)//if(isInserted)
 		SetScale/P x,0,temptime[numpnts(temptime)-1]/(numpnts(temptime)-1),temptension,tempdistance
 		isForceSetScale=1
 	endif
@@ -502,8 +502,8 @@ Function constPullSpeedRecorder(startFlag,endFlag,directionFlag)
 	Wave cyclecountWave=$cyclecountName
 	NVAR numConstSpeed=g_numConstSpeed
 	Variable temptimestart,PullingSpeed,tempdiststart
-	NVAR isInserted=root:g_isInserted
-	NVAR isSpeedSetScale=root:g_isSpeedSetScale
+//	NVAR isInserted=root:g_isInserted
+//	NVAR isSpeedSetScale=root:g_isSpeedSetScale
 	NVAR insertFlag=root:g_insertFlag
 //	NVAR initTime=root:g_initTime
 	NVAR cycleToTime=root:g_cycleToTime
@@ -605,9 +605,9 @@ Function constPullSpeedRecorder(startFlag,endFlag,directionFlag)
 		Note/NOCR temptension, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((temptimestart)/cycleToTime)+";"+"pulling_speed="+num2str(PullingSpeed)+";A=0;B=0;"
 		Note/NOCR tempdistance, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((temptimestart )/cycleToTime)+";"+"pulling_speed="+num2str(PullingSpeed)+";A=0;B=0;"
 		Make/O/N=(0,peakInfoDimension) $"root:constSpeed:Peak_Info_"+directionStr+num2str(numConstSpeed)
-		if(isInserted)
+		if(insertFlag)//if(isInserted)
 			SetScale/P x,0,temptime[numpnts(temptime)-1]/(numpnts(temptime)-1),temptension,tempdistance
-			isSpeedSetScale=1
+//			isSpeedSetScale=1
 		endif
 	endif
 end

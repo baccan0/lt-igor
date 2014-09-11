@@ -1,9 +1,10 @@
 #pragma rtGlobals=1		// Use modern global access method.
 constant NUMWLCFITPARA=4
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////global variable
 Function initConstSpeedPara()
 	Make/O/T/N=0 g_waveBox
 	Make/O/N=0 g_waveBoxSelect
+	make/O/N=0 g_waveBoxSelect_dup
 	Make/O/W/U g_waveBoxColor={{0,0,0},{65535,0,0},{0,65535,0},{0,0,65535},{0,65535,65535}}
 	MatrixTranspose g_waveBoxColor
 	Make/O/T/N=(0,3) g_infoBox
@@ -14,28 +15,23 @@ Function initConstSpeedPara()
 	Make/O g_drawingStatusPara={{0,1,0,0,0,0,0,0,0,0,0,0},{0,3,0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0}}
 	MatrixTranspose g_drawingStatusPara
 	make/O/N=2 g_infoShowPara={7,7}
-	make/O g_smoothPara={{1,21,0.2,0.3,10},{1,21,0.2,0.3,0}}
+	make/O g_smoothPara={{1,21,0,0.2,0.3,10},{1,21,0,0.2,0.3,0}}
 	MatrixTranspose g_smoothPara
 
-	Variable/G g_showExtFlag=0
-	
 	Variable/G g_complianceA=4
 	Variable/G g_complianceB=0
-	Variable/G g_insertFlag=0
-	Variable/G g_isSpeedSetScale=0
-	Variable/G g_AFPnum=1
-	Variable/G g_AFPLowForce=5
-	Variable/G g_AFPHighForce=20
-	Variable/G g_AFPStepwise=0.1
-	Variable/G g_AFPLevelGap=3
-	Variable/G g_AFPForceSmth1=11
-	Variable/G g_AFPForceSmth2=3
+//	Variable/G g_insertFlag=0
+//	Variable/G g_isSpeedSetScale=0
+//	Variable/G g_showExtFlag=0
+	
+	Variable/G g_multiSelec=0
+	
 	String/G g_currentFittingTrace=""
 	Variable/G g_saveFittingFlag=0
-
+	 initAutoFindPara()
 //	Variable/G g_isFiltered=0
 end
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////Panel
 Window ConstSpeedAnalysis() : Panel
 	PauseUpdate; Silent 1		// building window...
 	NewPanel /W=(780,193,1729,773)
@@ -59,17 +55,17 @@ Window ConstSpeedAnalysis() : Panel
 //	Setvariable AFPGapInput,pos={104,513},size={68,18},title="Gap",value=g_AFPLevelGap
 //	Setvariable AFPForceSmth1Input,pos={14,535},size={128,18},title="Level Smoothing",value=g_AFPForceSmth1
 //	Setvariable AFPForceSmth2Input,pos={14,556},size={142,18},title="Locating Smoothing",value=g_AFPForceSmth2
-//	Button AutoFindPeak,pos={128,444},size={80,25},proc=AutoFindPeak,title="AutoFindPeak"
-//	Button mergeData,pos={106,4},size={83,20},proc=mergeAllData,title="Merge data"
 	Display/W=(215,12,903,555)/HOST=#  
 	RenameWindow #,G0
 	SetActiveSubwindow ##
-	g_showExtFlag=2
+	setwindow # hook(mine)=myhook
+//	g_showExtFlag=2
 EndMacro
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////hook func
 Function myhook(s)
 	Struct WMWinHookStruct &s
+	NVAR ms=root: g_multiSelec
 	switch(s.eventCode)
 		case 11:
 			switch(s.keyCode)
@@ -79,18 +75,21 @@ Function myhook(s)
 				case 100://d
 					delInfoItem("")
 				break
-				case ://u
+				case 117://u
 				break
 				case 65://F
 					fitOnly("")
 				break
 				case 68://D
 				break
-				case ://S
+				case 83://S
 					saveFit("")
 				break
-				case ://C
+				case 67://C
 					fitAndCalibrate("")
+				break
+				case 109://m
+					ms=!ms
 				break
 			endswitch
 	endswitch
@@ -102,12 +101,19 @@ Function waveBoxController(LB_Struct):listboxcontrol
 	wave/T waveBox= root:g_waveBox
 	wave waveBoxSelect=root:g_waveBoxSelect
 	wave/T drawinglist=root:g_panelDrawingList
-
+	NVAR ms=root:g_multiSelec
+	
 	Variable ii,n,j
 	n=numpnts(waveBox)
 	switch(LB_Struct.eventcode)
 		case 4:
 		case 5:	
+			wave wbsd=root:g_waveBoxSelect_dup
+			if(ms)
+				for(ii=0;ii<n;ii+=1)
+					waveBoxSelect[ii][0][0]=waveBoxSelect[ii][0][0]%^(wbsd[ii]&1)
+				endfor
+			endif
 			deletepoints 0,numpnts(drawinglist),drawinglist
 			for(ii=0;ii<n;ii+=1)
 				if(waveBoxSelect[ii][0][0]&1)
@@ -118,6 +124,11 @@ Function waveBoxController(LB_Struct):listboxcontrol
 			endfor	
 			updateInfoBox()	
 			drawPanelGraph()
+			make/O/N=(n) root:g_waveBoxSelect_dup
+			wave wbsd=root:g_waveBoxSelect_dup
+			for(ii=0;ii<n;ii+=1)
+				wbsd[ii]=waveBoxSelect[ii][0][0]
+			endfor
 	endswitch
 end
 
@@ -190,7 +201,7 @@ Function addInfoItem(ctrlname):buttoncontrol
 			Insertpoints n,1,peak_info
 		endif
 		//wave tempwavey=$"root:display:"+tracename
-		addItem(peak_info,vcsr(A,"constspeedAnalysis#G0"),hcsr(A,"constspeedAnalysis#G0"),timeinfo[point],isunfold,0,0,0)
+		addItem(peak_info,n,vcsr(A,"constspeedAnalysis#G0"),hcsr(A,"constspeedAnalysis#G0"),timeinfo[point],isunfold,0,0,0)
 		updateInfoBox()
 	endif	
 end
@@ -454,6 +465,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 				make/O $"root:display:"+tempstr
 				wave tempwavey=$"root:display:"+tempstr
 				wave tempwavex=$"root:display:distancesmth"+num2str(getDrawingMode())+"_"+num2str(i)
+				setLowPassFilter(getIfInserted(getCurrentDataFolder()+drawinglist[i]))
 				smoothTraces($"root:display:tension"+num2str(getDrawingMode())+"_"+num2str(i),tempwavey,1)
 				myAppendToGraph(graphName,tempwavey,tempwavex,isleft,isbottom)
 				//appendtograph/W=$graphName tempwavey vs tempwavex
@@ -489,6 +501,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 				wave tempwavex=$"root:display:extensmthx"+num2str(getDrawingMode())+"_"+num2str(i)
 				wave tempwavey=$"root:display:"+tempstr
 				duplicate/O $"root:display:distancesmth"+num2str(getDrawingMode())+"_"+num2str(i), tempwavex
+				setLowPassFilter(getIfInserted(getCurrentDataFolder()+drawinglist[i]))
 				smoothTraces($"root:display:tension"+num2str(getDrawingMode())+"_"+num2str(i),tempwavey,1)
 				dist2Ext(tempwavex,tempwavey)
 				myAppendToGraph(graphName,tempwavey,tempwavex,isleft,isbottom)
@@ -517,6 +530,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 				make/O $"root:display:"+tempstr
 				wave tempwavey=$"root:display:"+tempstr
 				wave tempwavex=$"root:display:time"+num2str(getDrawingMode())+"_"+num2str(i)
+				setLowPassFilter(getIfInserted(getCurrentDataFolder()+drawinglist[i]))
 				smoothTraces($"root:display:distance"+num2str(getDrawingMode())+"_"+num2str(i),tempwavey,1)
 				myAppendToGraph(graphName,tempwavey,tempwavex,isleft,isbottom)
 				//appendtograph/W=$graphName tempwavey vs tempwavex
@@ -545,6 +559,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 				make/O $"root:display:"+tempstr
 				wave tempwavey=$"root:display:"+tempstr
 				wave tempwavex=$"root:display:time"+num2str(getDrawingMode())+"_"+num2str(i)
+				setLowPassFilter(getIfInserted(getCurrentDataFolder()+drawinglist[i]))
 				smoothTraces($"root:display:tension"+num2str(getDrawingMode())+"_"+num2str(i),tempwavey,1)
 				myAppendToGraph(graphName,tempwavey,tempwavex,isleft,isbottom)
 				//appendtograph/W=$graphName tempwavey vs tempwavex
@@ -706,9 +721,9 @@ Function /S getSuffix(sourStr)
 	return temp2
 end
 
-Function addItem(peak_info,a,b,c,d,e,f,g)
+Function addItem(peak_info,n,a,b,c,d,e,f,g)
 	wave peak_info
-	variable a,b,c,d,e,f,g
+	variable a,b,c,d,e,f,g,n
 	peak_info[n][0]=a//vcsr(A,"constspeedAnalysis#G0")//[point]
 	peak_info[n][1]=b//hcsr(A,"constspeedAnalysis#G0")//[point]
 	peak_info[n][4]=c//timeinfo[point]
@@ -800,8 +815,8 @@ Function smoothTraces(sourWave,destWave,selector)
 /// para[0],para[1] represent two set of parameter
 /// para[0 or 1][0] tells which method to use
 ///			0: box smoothing	(using para[][1])
-///			1: low pass filter (using para[][2] and para[][3])
-///			2: polynomial fitting (using para[][4])
+///			1: low pass filter (using para[][2],para[][3] and para[][4])
+///			2: polynomial fitting (using para[][5])
 	wave sourWave,destWave
 	variable selector
 	wave para=root:g_smoothPara
@@ -818,19 +833,23 @@ Function smoothTraces(sourWave,destWave,selector)
 			endif
 		break
 		case 2:
-			make/O/N=0 root:filtered
-			wave temp=root:filtered
-			Duplicate/O sourWave, temp
-			Make/O/D/N=0 root:coefs
-			FilterFIR/DIM=0/LO={para[selector][2],para[selector][3],101}/COEF root:coefs, temp //101 may have to be changed
-			duplicate/O temp, destWave	
+			if(para[selector][2])
+				make/O/N=0 root:filtered
+				wave temp=root:filtered
+				Duplicate/O sourWave, temp
+				Make/O/D/N=0 root:coefs
+				FilterFIR/DIM=0/LO={para[selector][3],para[selector][4],101}/COEF root:coefs, temp //101 may have to be changed
+				duplicate/O temp, destWave	
+			else
+				Duplicate/O sourWave,destWave
+			endif
 		break
 		case 3:	
 			make/O/N=0 root:filtered
 			wave temp=root:filtered
 			Duplicate/O sourWave, temp
 			duplicate/O temp,destWave
-			CurveFit/NTHR=0 poly para[selector][4],  temp /D=destWave	
+			CurveFit/NTHR=0 poly para[selector][5],  temp /D=destWave	
 		break
 	endswitch
 end
@@ -910,4 +929,23 @@ Function/S curveFittingOnly()
 		return drawinglist[index]
 	endif
 	return ""
+end
+
+Function getIfInserted(wavename)
+	string wavename
+	wave tempwave=$wavename
+	string wavenote
+	wavenote=note(tempwave)
+	if(NumberByKey("isInserted",wavenote,"=")==1)
+		return 1
+	else
+		return 0
+	endif
+end
+
+Function setLowPassFilter(flag)
+	variable flag
+	wave smoothPara=root:g_smoothPara
+	smoothPara[0][2]=flag
+	smoothPara[1][2]=flag
 end
