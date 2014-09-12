@@ -2,6 +2,7 @@
 constant NUMWLCFITPARA=4
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////global variable
 Function initConstSpeedPara()
+	NVAR pid=root:g_peakInfoDimension
 	Make/O/T/N=0 g_waveBox
 	Make/O/N=0 g_waveBoxSelect
 	make/O/N=0 g_waveBoxSelect_dup
@@ -25,7 +26,9 @@ Function initConstSpeedPara()
 //	Variable/G g_showExtFlag=0
 	
 	Variable/G g_multiSelec=0
-	
+	Variable/G g_saveGraphCounter=0
+	Variable/G g_mergePara=2^(pid+2)-1
+	Make/O/T g_itemInfoLabels={"tracename","Y","X","is_unfold","cL","time_stamp","dist_gap","dist_gap_stdev"}
 	String/G g_currentFittingTrace=""
 	Variable/G g_saveFittingFlag=0
 	 initAutoFindPara()
@@ -47,14 +50,11 @@ Window ConstSpeedAnalysis() : Panel
 	Button fitbutton,pos={55,508},size={50,15},title="F",proc=fitOnly
 	Button savefitbutton,pos={105,508},size={50,15},title="+F",proc=savefit
 	Button delfitbutton,pos={155,508},size={50,15},title="-F"
-	Button mergedatabutton,pos={6,560},size={50,15},title=">>Table"
-//	Setvariable AFPnumInput,pos={14,468},size={90,18},title="#peaks",value=g_AFPnum
-//	Setvariable AFPLowForceInput,pos={14,490},size={90,18},title="Low Force",value=g_AFPLowForce
-//	Setvariable AFPHighForceInput,pos={104,490},size={97,18},title="High Force",value=g_AFPHighForce
-//	Setvariable AFPStepwiseInput,pos={14,513},size={68,18},title="Step",value=g_AFPStepwise
-//	Setvariable AFPGapInput,pos={104,513},size={68,18},title="Gap",value=g_AFPLevelGap
-//	Setvariable AFPForceSmth1Input,pos={14,535},size={128,18},title="Level Smoothing",value=g_AFPForceSmth1
-//	Setvariable AFPForceSmth2Input,pos={14,556},size={142,18},title="Locating Smoothing",value=g_AFPForceSmth2
+	Button mergedatabutton,pos={6,560},size={50,15},title=">>Table",proc=mergeData
+	Button outputgraphbutton,pos={60,560},size={50,15},title=">>Graph",proc=saveGraph
+	Checkbox drawingstatuscheckbox0,pos={5,20},size={65,15},title="CSpeed",value=(g_drawingStatusPara[0][0]==0),proc=drawingStatusSwitch
+	Checkbox drawingstatuscheckbox1,pos={5,40},size={65,15},title="CForce",value=(g_drawingStatusPara[0][0]==1),proc=drawingStatusSwitch
+	Checkbox drawingstatuscheckbox2,pos={5,60},size={65,15},title="Other",value=(g_drawingStatusPara[0][0]==2),proc=drawingStatusSwitch
 	Display/W=(215,12,903,555)/HOST=#  
 	RenameWindow #,G0
 	SetActiveSubwindow ##
@@ -143,18 +143,7 @@ Function infoBoxController(s):listboxcontrol
 	switch(s.eventcode)
 		case 4:
 		case 5:	
-			if(status[0][10])
-				updatePanelGraph(10,status[1][10]&1,status[1][10]&2)
-			endif
-			if(status[0][11])
-				updatePanelGraph(10,status[1][11]&1,status[1][11]&2)
-			endif
-			if(status[2][0]&&status[2][10])
-				updatePanelGraph(10,status[3][10]&1,status[3][10]&2)
-			endif
-			if(status[2][0]&&status[2][11])
-				updatePanelGraph(11,status[3][11]&1,status[3][11]&2)
-			endif
+			updatepjonly()
 		break
 		case 7:
 			variable changedvalue=str2num(infoBox[s.row][s.col])
@@ -175,12 +164,37 @@ Function infoBoxController(s):listboxcontrol
 		break
 	endswitch
 end
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////Checkbox
+
+Function drawingStatusSwitch(name,value):checkBoxControl
+	string name
+	variable value
+	wave status=root:g_drawingStatusPara
+	strswitch(name)
+		case "drawingstatuscheckbox0":
+			status[0][0]=0
+		break
+		case "drawingstatuscheckbox1":
+			status[0][0]=1
+		break
+		case "drawingstatuscheckbox2":
+			status[0][0]=2
+		break
+	endswitch
+	Checkbox drawingstatuscheckbox0,value=(status[0][0]==0)
+	Checkbox drawingstatuscheckbox1,value=(status[0][0]==1)
+	Checkbox drawingstatuscheckbox2,value=(status[0][0]==2)
+	refreshWaves("")
+end
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////Button
 Function addInfoItem(ctrlname):buttoncontrol
 	string ctrlname
 	variable isunfold=0
 	NVAR peakInfoDimension= root:g_peakInfoDimension
 	wave/T drawinglist=root:g_panelDrawingList
+	string tracenote
 	SetActivesubwindow constspeedAnalysis#G0
 	string tempstr=CsrInfo(A,"constspeedAnalysis#G0")
 	string tracename=StringByKey("TNAME",tempstr,":",";")
@@ -201,7 +215,8 @@ Function addInfoItem(ctrlname):buttoncontrol
 			Insertpoints n,1,peak_info
 		endif
 		//wave tempwavey=$"root:display:"+tracename
-		addItem(peak_info,n,vcsr(A,"constspeedAnalysis#G0"),hcsr(A,"constspeedAnalysis#G0"),timeinfo[point],isunfold,0,0,0)
+		tracenote=note(timeinfo)
+		addItem(peak_info,n,vcsr(A,"constspeedAnalysis#G0"),hcsr(A,"constspeedAnalysis#G0"),numberbykey("start_time",tracenote,"=")+timeinfo[point],isunfold,0,0,0)
 		updateInfoBox()
 	endif	
 end
@@ -280,6 +295,61 @@ Function saveFit(ctrlname):buttonControl
 		setFitting(0)
 	endif
 end
+
+Function saveGraph(ctrlname):buttoncontrol
+	string ctrlname
+	saveGraphByName("constSpeedAnalysis#G0")
+end
+
+Function mergeData(ctrlname):buttoncontrol
+	string ctrlname
+	wave/T labels=root:g_itemInfoLabels
+	wave/T waveBox=root:g_waveBox
+	NVAR pid=root:g_peakInfoDimension
+	NVAR mp=root:g_mergePara
+	variable i,j,n,counter,k,rowcounter
+	string tablename
+	n=numpnts(waveBox)
+	variable itemsum=0
+	variable mergesum=0
+	for(i=0;i<n;i+=1)
+		wave tempwave= $getCurrentDataFolder()+"Peak_Info_"+getSuffix(waveBox[i])
+		itemsum+=numpnts(tempwave)/pid
+	endfor
+	for(i=0;i<pid+1;i+=1)
+		if(mp&(2^i))
+			mergesum+=1
+		endif
+	endfor
+	tablename="root:"+getModeName()+"_Info"
+	make/O/T/N=(itemsum+1,mergesum) $tablename
+	wave/T infotable=$tablename
+	counter=0
+	for(j=0;j<pid+1;j+=1)
+		if(mp&(2^j))
+			infotable[0][counter]=labels[j]
+			counter+=1
+		endif
+	endfor
+	rowcounter=1
+	for(i=0;i<n;i+=1)
+		wave tempwave= $getCurrentDataFolder()+"Peak_Info_"+getSuffix(waveBox[i])
+		if(numpnts(tempwave)>0)
+			for(k=0;k<numpnts(tempwave)/pid;k+=1)
+				infotable[rowcounter][0]=waveBox[i]
+				counter=1
+				for(j=1;j<pid+1;j+=1)
+					if(mp&(2^j))
+						infotable[rowcounter][counter]=num2str(tempwave[k][j-1])
+						counter+=1
+					endif
+				endfor
+				rowcounter+=1
+			endfor
+		endif
+	endfor
+	edit infotable
+end
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////display
 
 Function refreshWaves(ctrlname):buttoncontrol
@@ -290,6 +360,7 @@ Function refreshWaves(ctrlname):buttoncontrol
 	variable inboxnum
 	switch(getDrawingMode())
 		case 0:
+		case 2:
 			SetDataFolder $getCurrentDatafolder()	
 			inboxlist= WaveList("Tension_*",";","");
 			inboxnum = ItemsInList(inboxlist);
@@ -299,18 +370,14 @@ Function refreshWaves(ctrlname):buttoncontrol
 			inboxlist=Wavelist("Distance_*",";","");
 			inboxnum=ItemsInlist(inboxlist);
 		break
-		case 2:
-		break
 	endswitch
-	print inboxnum
+//	print inboxnum
 	Deletepoints 0,numpnts(waveBox),waveBox
 	insertpoints 0,inboxnum,waveBox
 	
 	Make/O/N=(inboxNum,1,2) root:g_waveBoxSelect
 	wave waveBoxSelect= root:g_waveBoxSelect
-	
 	waveBoxSelect[0][0][0]=1
-	
 	Variable ii=0
 	for(;ii<inboxnum;ii+=1)
 		waveBox[ii]=StringFromList(ii, inboxlist, ";");
@@ -392,6 +459,21 @@ Function myAppendToGraph(graphName,wavey,wavex,isleft,isbottom)
 		endif
 	endif
 end
+Function updatepjonly()
+	wave status=root:g_drawingStatusPara
+	if(status[0][10])
+		updatePanelGraph(10,status[1][10]&1,status[1][10]&2)
+	endif
+	if(status[0][11])
+		updatePanelGraph(11,status[1][11]&1,status[1][11]&2)
+	endif
+	if(status[2][0]&&status[2][10])
+		updatePanelGraph(10,status[3][10]&1,status[3][10]&2)
+	endif
+	if(status[2][0]&&status[2][11])
+		updatePanelGraph(11,status[3][11]&1,status[3][11]&2)
+	endif
+end
 
 Function drawPanelGraph()
 	clearAll("ConstSpeedAnalysis#G0")
@@ -449,7 +531,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 	n=numpnts(drawinglist)
 	switch(controller)
 		case 1:
-			clearTraces(graphName,"tension")
+			clearTraces(graphName,"tension*")
 			for(i=0;i<n;i+=1)
 				tempstr="tension"+num2str(getDrawingMode())+"_"+num2str(i)
 				myAppendToGraph(graphName,$"root:display:"+tempstr,$"root:display:distancesmth"+num2str(getDrawingMode())+"_"+num2str(i),isleft,isbottom)
@@ -459,7 +541,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 			break
 		case 2:
-			clearTraces(graphName,"distsmth")				
+			clearTraces(graphName,"distsmth*")				
 			for(i=0;i<n;i+=1)
 				tempstr="tensmth"+num2str(getDrawingMode())+"_"+num2str(i)
 				make/O $"root:display:"+tempstr
@@ -475,7 +557,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 			break
 		case 3:
-			clearTraces(graphName,"extensiony")
+			clearTraces(graphName,"extensiony*")
 			for(i=0;i<n;i+=1)
 				tempstr="extensiony"+num2str(getDrawingMode())+"_"+num2str(i)
 				make/O $"root:display:"+tempstr
@@ -493,7 +575,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 			break
 		case 4:
-			clearTraces(graphName,"extensmthy")
+			clearTraces(graphName,"extensmthy*")
 			for(i=0;i<n;i+=1)
 				tempstr="extensmthy"+num2str(getDrawingMode())+"_"+num2str(i)
 				make/O $"root:display:"+tempstr
@@ -512,7 +594,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 			break
 		case 5:
-			clearTraces(graphName,"distance")
+			clearTraces(graphName,"distance*")
 			for(i=0;i<n;i+=1)
 				tempstr="distance"+num2str(getDrawingMode())+"_"+num2str(i)
 				wave tempwavey=$"root:display:"+tempstr
@@ -524,7 +606,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 			break
 		case 6:
-			clearTraces(graphName,"distsmth")
+			clearTraces(graphName,"distsmth*")
 			for(i=0;i<n;i+=1)
 				tempstr="distsmth"+num2str(getDrawingMode())+"_"+num2str(i)
 				make/O $"root:display:"+tempstr
@@ -539,7 +621,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 			break
 		case 7:
-			clearTraces(graphName,"tensiontime")
+			clearTraces(graphName,"tensiontime*")
 			for(i=0;i<n;i+=1)
 				tempstr="tensiontime"+num2str(getDrawingMode())+"_"+num2str(i)
 				make/O $"root:display:"+tempstr
@@ -553,7 +635,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 			break
 		case 8:
-			clearTraces(graphName,"tensiontimesmth")
+			clearTraces(graphName,"tensiontimesmth*")
 			for(i=0;i<n;i+=1)
 				tempstr="tensiontimesmth"+num2str(getDrawingMode())+"_"+num2str(i)
 				make/O $"root:display:"+tempstr
@@ -568,7 +650,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 			break
 		case 9:			
-			clearTraces(graphName,"WLCFIT")
+			clearTraces(graphName,"WLCFIT*")
 			if(isleft)
 				GetAxis /Q/W=$graphName left
 			else
@@ -581,8 +663,8 @@ Function updatePanelGraph(controller,isleft,isbottom)
 						wave tempwave=$getCurrentDatafolder()+"Fit_"+getSuffix(drawinglist[i])
 						count=0
 						for(j=0;j<numpnts(tempwave)/2;j+=NUMWLCFITPARA)
-							make/O/N=10001 $"root:display:WLCFIT"+num2str(i)+"_"+num2str(count)
-							wave tempfit=$"root:display:WLCFIT"+num2str(i)+"_"+num2str(count)
+							make/O/N=10001 $"root:display:WLCFIT"+num2str(count)+"_"+num2str(i)
+							wave tempfit=$"root:display:WLCFIT"+num2str(count)+"_"+num2str(i)
 							w[0]={tempwave[j][0],tempwave[j+1][0],tempwave[j+2][0],tempwave[j+3][0]}
 							variable xlimit=inv_mod_MuS(w, V_max)
 							setScale/I x 0,xlimit,tempfit
@@ -592,8 +674,8 @@ Function updatePanelGraph(controller,isleft,isbottom)
 							myAppendToGraph2(graphName,tempfit,isleft,isbottom)
 							doupdate
 							//appendtograph/W=$graphName tempwave;delayUpdate
-							modifygraph/W=$graphName rgb($"WLCFIT"+num2str(i)+"_"+num2str(count))=(32768,0,65535);delayUpdate
-							tag /A=RT /L=1 /Z=0 /B=0 $"WLCFIT"+num2str(i)+"_"+num2str(count),100,"p="+num2str(tempfit[j])+";L="+num2str(tempfit[j+2])+";K="+num2str(tempfit[j+3])
+							modifygraph/W=$graphName rgb($"WLCFIT"+num2str(count)+"_"+num2str(i))=(32768,0,65535);delayUpdate
+							tag /A=RT /L=1 /Z=0 /B=0 $"WLCFIT"+num2str(count)+"_"+num2str(i),100,"p="+num2str(tempfit[j])+";L="+num2str(tempfit[j+2])+";K="+num2str(tempfit[j+3])
 							count+=1
 						endfor
 					endif
@@ -601,7 +683,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			//tag /A=LT /L=1 /Z=0 /B=0 stiffness24,100,"haha"
 			break
 		case 10:
-			clearTraces(graphName,"Peak")
+			clearTraces(graphName,"Peak*")
 			if(isbottom)
 				GetAxis /Q/W=$graphName bottom
 			else
@@ -615,17 +697,17 @@ Function updatePanelGraph(controller,isleft,isbottom)
 				num=numpnts(tempinfo)/pid
 				if(num>0)
 					for(j=0;j<num;j+=1)
-						make/O/N=2 $"root:display:Peak_"+num2str(count)
-						wave tempwave=$"root:display:Peak_"+num2str(count)
+						make/O/N=2 $"root:display:Peak_"+num2str(count)+"_"+num2str(i)
+						wave tempwave=$"root:display:Peak_"+num2str(count)+"_"+num2str(i)
 						setScale/I x V_min,V_max,tempwave
 						tempwave=tempinfo[j][0]
 						myAppendToGraph2(graphName,tempwave,isleft,isbottom)
 						//appendtograph/W=$graphName tempwave;delayUpdate
-						modifygraph/W=$graphName lStyle($"Peak_"+num2str(count))=2;delayUpdate
+						modifygraph/W=$graphName lStyle($"Peak_"+num2str(count)+"_"+num2str(i))=2;delayUpdate
 						if(isSelected(infoBoxSel,m,count))
-							modifygraph/W=$graphName rgb($"Peak_"+num2str(count))=(0,0,0);delayUpdate
+							modifygraph/W=$graphName rgb($"Peak_"+num2str(count)+"_"+num2str(i))=(0,0,0);delayUpdate
 						else
-							modifygraph/W=$graphName rgb($"Peak_"+num2str(count))=(32767,32767,32767);delayUpdate
+							modifygraph/W=$graphName rgb($"Peak_"+num2str(count)+"_"+num2str(i))=(32767,32767,32767);delayUpdate
 						endif
 						count+=1
 					endfor
@@ -633,7 +715,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 			endfor
 		break
 		case 11:
-			clearTraces(graphName,"Jump")
+			clearTraces(graphName,"Jump*")
 			if(isleft)
 				GetAxis /Q/W=$graphName left
 			else
@@ -646,18 +728,18 @@ Function updatePanelGraph(controller,isleft,isbottom)
 				num=numpnts(tempinfo)/pid
 				if(num>0)
 					for(j=0;j<num;j+=1)
-						make/O/N=2 $"root:display:Jump_"+num2str(count)
-						wave tempwave=$"root:display:Jump_"+num2str(count)
+						make/O/N=2 $"root:display:Jump_"+num2str(count)+"_"+num2str(i)
+						wave tempwave=$"root:display:Jump_"+num2str(count)+"_"+num2str(i)
 						setScale/I x tempinfo[j][1],(tempinfo[j][1]+0.00001),tempwave
 						tempwave[0]=V_min
 						tempwave[1]=V_max
 						myAppendToGraph2(graphName,tempwave,isleft,isbottom)
 						//appendtograph/W=$graphName tempwave;delayUpdate
-						modifygraph/W=$graphName lStyle($"Jump_"+num2str(count))=2;delayUpdate
+						modifygraph/W=$graphName lStyle($"Jump_"+num2str(count)+"_"+num2str(i))=2;delayUpdate
 						if(isSelected(infoBoxSel,m,count))
-							modifygraph/W=$graphName rgb($"Jump_"+num2str(count))=(0,0,0);delayUpdate
+							modifygraph/W=$graphName rgb($"Jump_"+num2str(count)+"_"+num2str(i))=(0,0,0);delayUpdate
 						else
-							modifygraph/W=$graphName rgb($"Jump_"+num2str(count))=(32767,32767,32767);delayUpdate
+							modifygraph/W=$graphName rgb($"Jump_"+num2str(count)+"_"+num2str(i))=(32767,32767,32767);delayUpdate
 						endif
 						count+=1
 					endfor
@@ -710,6 +792,7 @@ Function/S getModeName()
 			str="OT"
 			break
 	endswitch
+	return str
 end
 
 Function /S getSuffix(sourStr)
@@ -795,7 +878,7 @@ Function updateInfoBox()
 					for(k=0;k<pid;k+=1)
 						if(infoShowPara[0]&(2^k))
 							infoBox[ibx][iby]=num2str(temppeakinfo[j][k])
-							infoBoxSel[ibx][iby]=2
+							infoBoxSel[ibx][iby]=6
 							iby+=1
 						endif
 					endfor
@@ -807,6 +890,7 @@ Function updateInfoBox()
 		infoBoxSel[0][0]=infoBoxSel[0][0]|1
 	elseif(getDrawingMode()==1)
 	endif
+	updatepjonly()
 	doUpdate
 end
 
@@ -949,3 +1033,35 @@ Function setLowPassFilter(flag)
 	smoothPara[0][2]=flag
 	smoothPara[1][2]=flag
 end
+
+Function saveGraphByName(graphName)
+	string graphName
+	string tracenames=tracenamelist(graphName,";",1)
+	wave/T drawinglist=root:g_panelDrawingList
+	wave/T waveBox= root:g_waveBox
+	string item,tempname,newwavename
+	variable i,n,temp
+	NVAR sgc=root:g_saveGraphCounter
+	n=itemsinlist(tracenames)
+	display/N=$"outputgrpah"+num2str(sgc)
+	NewDataFolder/O root:graph
+	for(i=0;i<n;i+=1)
+		item=StringFromList(i,tracenames,";")
+		temp=str2num(getSuffix(item))
+		tempname=drawinglist[temp]
+		temp=str2num(getSuffix(tempname))
+		tempname=waveBox[temp]
+		newwavename="root:graph:"+item+"_"+getSuffix(tempname)+"_"+num2str(i)+"_y_"+num2str(sgc)
+		duplicate /O $"root:display:"+item, $newwavename
+		
+		newwavename="root:graph:"+item+"_"+getSuffix(tempname)+"_"+num2str(i)+"_x_"+num2str(sgc)
+		wave tempwave=XWaveReffromtrace("constspeedAnalysis#G0",item)
+		duplicate /O tempwave,$newwavename
+		appendtograph/W=$"outputgrpah"+num2str(sgc) $"root:graph:"+item+"_"+getSuffix(tempname)+"_"+num2str(i)+"_y_"+num2str(sgc) vs $"root:graph:"+item+"_"+getSuffix(tempname)+"_"+num2str(i)+"_x_"+num2str(sgc)
+	endfor
+	sgc+=1
+end
+
+
+
+
