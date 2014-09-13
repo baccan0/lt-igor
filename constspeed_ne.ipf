@@ -2,7 +2,6 @@
 constant NUMWLCFITPARA=4
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////global variable
 Function initConstSpeedPara()
-	NVAR pid=root:g_peakInfoDimension
 	Make/O/T/N=0 g_waveBox
 	Make/O/N=0 g_waveBoxSelect
 	make/O/N=0 g_waveBoxSelect_dup
@@ -13,9 +12,7 @@ Function initConstSpeedPara()
 
 	Make/O/T/N=0 g_panelDrawingList
 	Make/O/N=0 g_panelDrawingItemInfoNum
-	Make/O g_drawingStatusPara={{0,1,0,0,0,0,0,0,0,0,0,0},{0,3,0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0}}
-	MatrixTranspose g_drawingStatusPara
-	make/O/N=2 g_infoShowPara={7,7}
+
 	make/O g_smoothPara={{1,21,0,0.2,0.3,10},{1,21,0,0.2,0.3,0}}
 	MatrixTranspose g_smoothPara
 
@@ -27,15 +24,15 @@ Function initConstSpeedPara()
 	
 	Variable/G g_multiSelec=0
 	Variable/G g_saveGraphCounter=0
-	Variable/G g_mergePara=2^(pid+2)-1
-	Make/O/T g_itemInfoLabels={"tracename","Y","X","is_unfold","cL","time_stamp","dist_gap","dist_gap_stdev"}
+
 	String/G g_currentFittingTrace=""
 	Variable/G g_saveFittingFlag=0
 	 initAutoFindPara()
+	 initPanelDispPara()
 //	Variable/G g_isFiltered=0
 end
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////Panel
-Window ConstSpeedAnalysis() : Panel
+Window ConstSpeedAnalysis():Panel
 	PauseUpdate; Silent 1		// building window...
 	NewPanel /W=(780,193,1729,773)
 //	Button refreshwaves,pos={7,4},size={83,20},proc=refreshWaves,title="refresh waves"
@@ -65,7 +62,7 @@ EndMacro
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////hook func
 Function myhook(s)
 	Struct WMWinHookStruct &s
-	NVAR ms=root: g_multiSelec
+	NVAR ms=root:g_multiSelec
 	switch(s.eventCode)
 		case 11:
 			switch(s.keyCode)
@@ -186,6 +183,7 @@ Function drawingStatusSwitch(name,value):checkBoxControl
 	Checkbox drawingstatuscheckbox1,value=(status[0][0]==1)
 	Checkbox drawingstatuscheckbox2,value=(status[0][0]==2)
 	refreshWaves("")
+	IIRefreshFunc()
 end
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////Button
@@ -336,8 +334,12 @@ Function mergeData(ctrlname):buttoncontrol
 		wave tempwave= $getCurrentDataFolder()+"Peak_Info_"+getSuffix(waveBox[i])
 		if(numpnts(tempwave)>0)
 			for(k=0;k<numpnts(tempwave)/pid;k+=1)
-				infotable[rowcounter][0]=waveBox[i]
-				counter=1
+				if(mp&1)
+					infotable[rowcounter][0]=waveBox[i]
+					counter=1
+				else
+					counter=0
+				endif
 				for(j=1;j<pid+1;j+=1)
 					if(mp&(2^j))
 						infotable[rowcounter][counter]=num2str(tempwave[k][j-1])

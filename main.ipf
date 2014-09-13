@@ -2,6 +2,7 @@
 #include ":fitfunc"
 #include ":constspeed_ne"
 #include ":autofind"
+#include ":setpara"
 
 
 
