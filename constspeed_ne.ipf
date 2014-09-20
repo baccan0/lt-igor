@@ -42,13 +42,15 @@ Window ConstSpeedAnalysis():Panel
 	SetDrawEnv fillpat= 0
 	Button addbutton,pos={15,476},size={50,15},title="+",proc=addInfoItem
 	Button minusbutton,pos={80,476},size={50,15},title="-",proc=delInfoItem
-	Button autobutton,pos={145,476},size={50,15},title="A"
+	Button autobutton,pos={145,476},size={50,15},title="A",proc=autoFinditem
 	Button fitandcalibutton,pos={5,508},size={50,15},title="FC",proc=fitAndCalibrate
 	Button fitbutton,pos={55,508},size={50,15},title="F",proc=fitOnly
 	Button savefitbutton,pos={105,508},size={50,15},title="+F",proc=savefit
 	Button delfitbutton,pos={155,508},size={50,15},title="-F"
 	Button mergedatabutton,pos={6,560},size={50,15},title=">>Table",proc=mergeData
 	Button outputgraphbutton,pos={60,560},size={50,15},title=">>Graph",proc=saveGraph
+	Button setupinfoboxbutton,pos={114,560},size={20,15},title=">>",proc=setupInfo
+	Button setupparabutton,pos={919,560},size={20,15},title=">>",proc=setupPara
 	Checkbox drawingstatuscheckbox0,pos={5,20},size={65,15},title="CSpeed",value=(g_drawingStatusPara[0][0]==0),proc=drawingStatusSwitch
 	Checkbox drawingstatuscheckbox1,pos={5,40},size={65,15},title="CForce",value=(g_drawingStatusPara[0][0]==1),proc=drawingStatusSwitch
 	Checkbox drawingstatuscheckbox2,pos={5,60},size={65,15},title="Other",value=(g_drawingStatusPara[0][0]==2),proc=drawingStatusSwitch
@@ -64,6 +66,9 @@ Function myhook(s)
 	Struct WMWinHookStruct &s
 	NVAR ms=root:g_multiSelec
 	switch(s.eventCode)
+		case 7:
+			resetItemNum()
+			break
 		case 11:
 			switch(s.keyCode)
 				case 97://a
@@ -89,6 +94,7 @@ Function myhook(s)
 					ms=!ms
 				break
 			endswitch
+			break
 	endswitch
 end
 
@@ -182,40 +188,48 @@ Function drawingStatusSwitch(name,value):checkBoxControl
 	Checkbox drawingstatuscheckbox0,value=(status[0][0]==0)
 	Checkbox drawingstatuscheckbox1,value=(status[0][0]==1)
 	Checkbox drawingstatuscheckbox2,value=(status[0][0]==2)
+	rewriteCurrentStatus()
 	refreshWaves("")
 	IIRefreshFunc()
 end
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////Button
+Function setupInfo(ctrlname):buttoncontrol
+	string ctrlname
+	if(!ifExisted("InfoItemSetup"))
+		IISetupFunc()
+	endif
+end
+
+Function setupPara(ctrlname):buttoncontrol
+	string ctrlname
+	if(!ifExisted("DrawingStatusSetup"))
+		DSSetupFunc()
+	endif
+end
+
 Function addInfoItem(ctrlname):buttoncontrol
 	string ctrlname
-	variable isunfold=0
-	NVAR peakInfoDimension= root:g_peakInfoDimension
+	
 	wave/T drawinglist=root:g_panelDrawingList
-	string tracenote
 	SetActivesubwindow constspeedAnalysis#G0
 	string tempstr=CsrInfo(A,"constspeedAnalysis#G0")
 	string tracename=StringByKey("TNAME",tempstr,":",";")
 	if(cmpstr(tracename,"")!=0)
 		variable point=str2num(StringByKey("POINT",tempstr,":",";"))
 		string tracename2=drawinglist[str2num(getSuffix(tracename))]
-		string suffixname=getSuffix(tracename2)
-		if(stringmatch(suffixname,"Unf*"))
-			isunfold=1
-		endif
-		wave peak_info=$getCurrentDatafolder()+"Peak_Info_"+getSuffix(tracename2)
-		wave timeinfo=$getCurrentDatafolder()+"Time_"+getSuffix(tracename2)
-		Variable n=numpnts(peak_info)/peakInfoDimension
-		if(n==0)
-			make/O/N=(1,peakInfoDimension) $getCurrentDatafolder()+"Peak_Info_"+getSuffix(tracename2)
-			wave peak_info=$getCurrentDatafolder()+"Peak_Info_"+getSuffix(tracename2)
-		else
-			Insertpoints n,1,peak_info
-		endif
-		//wave tempwavey=$"root:display:"+tracename
-		tracenote=note(timeinfo)
-		addItem(peak_info,n,vcsr(A,"constspeedAnalysis#G0"),hcsr(A,"constspeedAnalysis#G0"),numberbykey("start_time",tracenote,"=")+timeinfo[point],isunfold,0,0,0)
-		updateInfoBox()
+		wave wavey=$"root:display:"+tracename
+		wave wavex=XWaveReffromtrace("constspeedAnalysis#G0",tracename)
+		switch(getDrawingMode())
+		case 0:
+			addItembypoint(wavey,wavex,tracename2,point)
+			break
+		case 1:
+			autoFindMethod1(wavey,point-20,point+20,1,2)
+			wave af=root:g_autoFindLoc
+			addItembypoint(wavey,wavex,tracename2,af[0][0])
+			break
+		endswitch
 	endif	
 end
 
@@ -388,6 +402,7 @@ Function refreshWaves(ctrlname):buttoncontrol
 	wave/T drawinglist=root:g_panelDrawingList
 	drawinglist[0]=waveBox[0]
 	SetDataFolder root:
+	drawPanelGraph()
 end
 
 Function dist2Ext(waved,wavef)
@@ -502,7 +517,7 @@ Function drawPanelGraph()
 			updatePanelGraph(i,status[1][i]&1,status[1][i]&2)
 		endif
 	endfor
-	if(status[2][0])
+	if(status[2][0]&&numpnts(drawinglist)>0)
 		for(i=1;i<12;i+=1)
 			if(status[2][i])
 				updatePanelGraph(i,status[3][i]&1,status[3][i]&2)
@@ -517,6 +532,7 @@ Function drawPanelGraph()
 		doupdate
 	endif
 	setFitting(0)
+	resetItemNum()
 end
 
 Function updatePanelGraph(controller,isleft,isbottom)
@@ -806,9 +822,56 @@ Function /S getSuffix(sourStr)
 	return temp2
 end
 
-Function addItem(peak_info,n,a,b,c,d,e,f,g)
-	wave peak_info
-	variable a,b,c,d,e,f,g,n
+Function addItembypoint(wavey,wavex,tracename2,point)
+		wave wavey,wavex
+		string tracename2
+		variable point
+		variable isunfold=0
+		NVAR peakInfoDimension= root:g_peakInfoDimension
+		string suffixname=getSuffix(tracename2)
+		wave peak_info=$getCurrentDatafolder()+"Peak_Info_"+getSuffix(tracename2)
+		wave timeinfo=$getCurrentDatafolder()+"Time_"+getSuffix(tracename2)
+		Variable n=numpnts(peak_info)/peakInfoDimension
+		string tracenote=note(timeinfo)
+		variable timestamp=numberbykey("start_time",tracenote,"=")+timeinfo[point]
+		//wave tempwavey=$"root:display:"+tracename
+		switch(getDrawingMode())
+			case 0:
+				if(stringmatch(suffixname,"Unf*"))
+					isunfold=1
+				endif
+				addItem(tracename2,wavey[point],wavex[point],timestamp,isunfold,0,0,0,-1)
+				break
+			case 1:				
+				addItem(tracename2,wavey[point],wavex[point],timestamp,(wavey[point]-wavex[point])>0,0,0,0,0)
+				break
+		endswitch
+		updateInfoBox()
+end
+
+Function addItem(tracename,a,b,c,d,e,f,g,h)
+	string tracename
+	variable a,b,c,d,e,f,g,h
+	variable n,i,j
+	NVAR pid=root:g_peakInfoDimension
+	wave peak_info=$getCurrentDataFolder()+"Peak_Info_"+getSuffix(tracename)
+	n=numpnts(peak_info)/pid
+	if(n==0)
+		make/O/N=(1,pid) $getCurrentDatafolder()+"Peak_Info_"+getSuffix(tracename)
+		wave peak_info=$getCurrentDatafolder()+"Peak_Info_"+getSuffix(tracename)
+	else
+		Insertpoints n,1,peak_info
+		for(i=n-1;i>=0;i-=1)
+			if(peak_info[i][4]>c)
+				for(j=0;j<pid;j+=1)
+					peak_info[i+1][j]=peak_info[i][j]
+				endfor
+			else
+				break
+			endif
+		endfor
+		n=i+1
+	endif
 	peak_info[n][0]=a//vcsr(A,"constspeedAnalysis#G0")//[point]
 	peak_info[n][1]=b//hcsr(A,"constspeedAnalysis#G0")//[point]
 	peak_info[n][4]=c//timeinfo[point]
@@ -817,6 +880,10 @@ Function addItem(peak_info,n,a,b,c,d,e,f,g)
 	//getProteinDistance(peak_info[n][1],peak_info[n][0], distAve, distStddev)
 	peak_info[n][5]=f//0//distAve
 	peak_info[n][6]=g//0//distStddev
+	if(h<0)
+	else
+		peak_info[n][7]=h
+	endif
 end
 
 Function getInfoBoxDim()
@@ -866,7 +933,7 @@ Function updateInfoBox()
 		n+=pdiin[i]
 	endfor	
 	m=getInfoBoxDim()
-	if(getDrawingMode()==0)
+//	if(getDrawingMode()==0)
 		Make/O/T/N=(n,m) root:g_infoBox
 		Make/O/N=(n,m) root:g_infoBoxSelect	
 		wave/T infoBox=root:g_infoBox
@@ -878,7 +945,7 @@ Function updateInfoBox()
 				for(j=0;j<pdiin[i];j+=1)
 					iby=0
 					for(k=0;k<pid;k+=1)
-						if(infoShowPara[0]&(2^k))
+						if(infoShowPara[getDrawingMode()]&(2^k))
 							infoBox[ibx][iby]=num2str(temppeakinfo[j][k])
 							infoBoxSel[ibx][iby]=6
 							iby+=1
@@ -890,8 +957,8 @@ Function updateInfoBox()
 			endif
 		endfor
 		infoBoxSel[0][0]=infoBoxSel[0][0]|1
-	elseif(getDrawingMode()==1)
-	endif
+//	elseif(getDrawingMode()==1)
+//	endif
 	updatepjonly()
 	doUpdate
 end
@@ -1063,6 +1130,8 @@ Function saveGraphByName(graphName)
 	endfor
 	sgc+=1
 end
+
+
 
 
 

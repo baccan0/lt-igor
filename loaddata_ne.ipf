@@ -59,7 +59,7 @@ Function InitPara(ctrlname):buttoncontrol
 	Variable/G g_insertFlag=0
 //	Variable/G g_initTime=0
 	Variable/G g_cycleToTime=1000
-	Variable/G g_peakInfoDimension=7
+	Variable/G g_peakInfoDimension=8
 //	Variable/G g_jumpInfoDimension=3
 	NewDataFolder root:constSpeed 
 	NewDataFolder root:constForce
@@ -424,11 +424,11 @@ Function constForceRecorder(startFlag,endFlag,preForce)
 	Wave cyclecountWave=$cyclecountName
 	NVAR numConstForce=g_numConstForce
 //	NVAR isInserted=root:g_isInserted
-	NVAR isForceSetScale=root:g_isForceSetScale
+//	NVAR isForceSetScale=root:g_isForceSetScale
 	NVAR insertFlag=root:g_insertFlag
 //	NVAR initTime=root:g_initTime
 	NVAR cycleToTime=root:g_cycleToTime
-	NVAR jumpInfoDimension=root:g_jumpInfoDimension
+	NVAR jumpInfoDimension=root:g_peakInfoDimension
 	
 	Variable aveForce=0
 	Variable startDist=0
@@ -460,9 +460,9 @@ Function constForceRecorder(startFlag,endFlag,preForce)
 	Note/NOCR tempdistance,"begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"startpos="+num2str(startFlag)+";"
 	if(insertFlag)//if(isInserted)
 		SetScale/P x,0,temptime[numpnts(temptime)-1]/(numpnts(temptime)-1),temptension,tempdistance
-		isForceSetScale=1
+//		isForceSetScale=1
 	endif
-	Make/O/N=(0,jumpInfoDimension) $"root:constForce:Jump_Info_"+num2str(numConstForce)
+	Make/O/N=(0,jumpInfoDimension) $"root:constForce:Peak_Info_"+num2str(numConstForce)
 	return aveForce
 end
 
