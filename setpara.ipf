@@ -3,18 +3,18 @@
 /////////////////////////////////////////////////////////////////////init
 Function initPanelDispPara()
 	NVAR pid=root:g_peakInfoDimension
-	Variable/G g_statusParaNum= 11
-	Make/O g_drawingStatusPara={{0,1,0,0,0,0,0,0,0,0,1,0},{0,3,3,3,3,3,3,3,3,3,3,3},{0,0,0,1,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0}}
-	Make/O g_statusPara_CS={{0,1,0,0,0,0,0,0,0,0,1,0},{0,3,3,3,3,3,3,3,3,3,3,3},{0,0,0,1,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0}}
-	Make/O g_statusPara_CF={{1,1,0,0,0,1,0,0,0,0,0,1},{0,3,3,3,3,3,3,3,3,3,3,3},{1,0,0,0,0,0,0,1,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0}}
-	Make/O g_statusPara_OT={{2,1,0,0,0,0,0,0,0,0,0,0},{0,3,3,3,3,3,3,3,3,3,3,3},{0,0,0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0}}
+	Variable/G g_statusParaNum= 12
+	Make/O g_drawingStatusPara={{0,1,0,0,0,0,0,0,0,0,1,0,0},{0,3,3,3,3,3,3,3,3,3,3,3,3},{0,0,0,1,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0,0}}
+	Make/O g_statusPara_CS={{0,1,0,0,0,0,0,0,0,0,1,0,0},{0,3,3,3,3,3,3,3,3,3,3,3,3},{0,0,0,1,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0,0}}
+	Make/O g_statusPara_CF={{1,1,0,0,0,1,0,0,0,0,0,1,0},{0,3,3,3,3,3,3,3,3,3,3,3,3},{1,0,0,0,0,0,0,1,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0,0}}
+	Make/O g_statusPara_OT={{2,1,0,0,0,0,0,0,0,0,0,0,0},{0,3,3,3,3,3,3,3,3,3,3,3,3},{0,0,0,0,0,0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0,0,0,0,0}}
 	MatrixTranspose g_drawingStatusPara
 	MatrixTranspose g_statusPara_CS
 	MatrixTranspose g_statusPara_CF
 	MatrixTranspose g_statusPara_OT
-	make/O/T g_drawingStatusParaNames={"tens_vs_dist","tens_vs_dist_smth","tens_vs_exte","tens_vs_exte_smth","dist_vs_time","dist_vs_time_smth","tens_vs_time","tens_vs_time_smth","mWLCFit","ItemY","ItemX"}
+	make/O/T g_drawingStatusParaNames={"tens_vs_dist","tens_vs_dist_smth","tens_vs_exte","tens_vs_exte_smth","dist_vs_time","dist_vs_time_smth","tens_vs_time","tens_vs_time_smth","mWLCFit","ItemY","ItemX","separator"}
 	make/O/N=2 g_infoShowPara={7,7,7}
-	Make/O/T g_itemInfoLabels={"tracename","Y","X","is_unfold","cL","time_stamp","dist_gap","dist_gap_stdev","pull_rate"}
+	Make/O/T g_itemInfoLabels={"tracename","Y","X","is_unfold","cL","time_stamp","dist_gap","gap_stdev","pull_rate","point"}
 	Variable/G g_mergePara=2^(pid+2)-1
 end
 
@@ -27,7 +27,7 @@ Function IISetupFunc()
 	NVAR mp=root:g_mergePara
 	variable i
 	if(!ifExisted("InfoItemSetup"))
-		NewPanel /W=(210,193,1130,350)/N=InfoItemSetup
+		NewPanel /W=(210,193,1330,350)/N=InfoItemSetup /K=1
 		for(i=0;i<pid;i+=1)
 			CheckBox $"IISChkBox_"+num2str(i),pos={5+100*i,40},size={65,15},title=iiLabels[i+1],value=isp[status[0][0]]&(2^i), win=InfoItemSetup,proc=setInfoItem
 			delayupdate
@@ -48,7 +48,7 @@ Function DSSetupFunc()
 	wave/T dspn=root:g_drawingStatusParaNames
 	wave status=g_drawingStatusPara
 	if(!ifExisted("DrawingStatusSetup"))
-		NewPanel /W=(210,193,560,750)/N=DrawingStatusSetup
+		NewPanel /W=(210,193,560,750)/N=DrawingStatusSetup /K=1
 		for(i=0;i<spn;i+=1)
 			CheckBox $"DSSChkBox_"+num2str(i+1),pos={5,20+20*i},size={65,15},title=dspn[i],value=status[0][i+1], win=DrawingStatusSetup,proc=setDrawingGraph
 			delayupdate
@@ -61,17 +61,17 @@ Function DSSetupFunc()
 			checkBox $"DSSChkBoxLoc_"+num2str((i+1)*4+3),pos={300,20+20*i},size={50,15},title="top",value=!(status[1][i+1]&2),win=DrawingStatusSetup,proc=setDrawingGraphLoc
 			delayupdate
 		endfor
-		CheckBox $"DSSChkBox_"+num2str(2^8),pos={5,260},size={65,15},title="BotView",value=status[2][1],win=DrawingStatusSetup,proc=setBotView
+		CheckBox $"DSSChkBox_"+num2str(2^8),pos={5,280},size={65,15},title="BotView",value=status[2][1],win=DrawingStatusSetup,proc=setBotView
 		for(i=0;i<spn;i+=1)
-			CheckBox $"DSSChkBox_"+num2str(2^8+i+1),pos={5,280+20*i},size={65,15},title=dspn[i],value=status[2][i+1], win=DrawingStatusSetup,proc=setDrawingGraph
+			CheckBox $"DSSChkBox_"+num2str(2^8+i+1),pos={5,300+20*i},size={65,15},title=dspn[i],value=status[2][i+1], win=DrawingStatusSetup,proc=setDrawingGraph
 			delayupdate
-			checkBox $"DSSChkBoxLoc_"+num2str(2^8+(i+1)*4),pos={150,280+20*i},size={50,15},title="left",value=status[3][i+1]&1,win=DrawingStatusSetup,proc=setDrawingGraphLoc
+			checkBox $"DSSChkBoxLoc_"+num2str(2^8+(i+1)*4),pos={150,300+20*i},size={50,15},title="left",value=status[3][i+1]&1,win=DrawingStatusSetup,proc=setDrawingGraphLoc
 			delayupdate
-			checkBox $"DSSChkBoxLoc_"+num2str(2^8+(i+1)*4+1),pos={200,280+20*i},size={50,15},title="right",value=!(status[3][i+1]&1),win=DrawingStatusSetup,proc=setDrawingGraphLoc
+			checkBox $"DSSChkBoxLoc_"+num2str(2^8+(i+1)*4+1),pos={200,300+20*i},size={50,15},title="right",value=!(status[3][i+1]&1),win=DrawingStatusSetup,proc=setDrawingGraphLoc
 			delayupdate
-			checkBox $"DSSChkBoxLoc_"+num2str(2^8+(i+1)*4+2),pos={250,280+20*i},size={50,15},title="bottom",value=status[3][i+1]&2,win=DrawingStatusSetup,proc=setDrawingGraphLoc
+			checkBox $"DSSChkBoxLoc_"+num2str(2^8+(i+1)*4+2),pos={250,300+20*i},size={50,15},title="bottom",value=status[3][i+1]&2,win=DrawingStatusSetup,proc=setDrawingGraphLoc
 			delayupdate
-			checkBox $"DSSChkBoxLoc_"+num2str(2^8+(i+1)*4+3),pos={300,280+20*i},size={50,15},title="top",value=!(status[3][i+1]&2),win=DrawingStatusSetup,proc=setDrawingGraphLoc
+			checkBox $"DSSChkBoxLoc_"+num2str(2^8+(i+1)*4+3),pos={300,300+20*i},size={50,15},title="top",value=!(status[3][i+1]&2),win=DrawingStatusSetup,proc=setDrawingGraphLoc
 			delayupdate
 		endfor
 		drawtext/W=DrawingStatusSetup 20,540,"Be careful not to have conflicts!"
@@ -91,7 +91,7 @@ Function IIRefreshFunc()
 			CheckBox $"IISChkBox_"+num2str(i),value=isp[status[0][0]]&(2^i), win=InfoItemSetup
 			delayupdate
 		endfor
-		updateInfoBox()
+		updateInfoBox(0,0)
 	endif
 	doupdate
 end
@@ -231,7 +231,7 @@ Function setInfoItem(name,value):checkboxcontrol
 	else
 		isp[status[0][0]]=isp[status[0][0]]&(2^(pid+1)-1-2^index)
 	endif
-	updateInfoBox()
+	updateInfoBox(0,0)
 end
 
 Function setInfoItemMerge(name,value):checkboxcontrol

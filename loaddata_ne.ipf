@@ -9,6 +9,7 @@ Window Autodetectpeaks() : Panel
 	DrawLine 1,38,257,38
 	SetDrawEnv linethick= 2,dash= 1
 	DrawLine 4,311,260,311
+	checkIfInit()
 	Button button1,pos={6,8},size={130,18},proc=InitPara,title="Init Parameters"
 	Button button3,pos={6,50},size={130,18},proc=chooseFile,title="Choose File"
 	Button button2,pos={1,120},size={130,18},proc=LoadLTFiles1,title="Loadfile(with skips)"
@@ -40,6 +41,12 @@ Window InsertingAritificialPoints() : Panel
 //	Button InsertPointButton,pos={53,52},size={130,18},proc=insertArtificial,title="Start inserting"
 EndMacro
 
+Function checkIfInit()
+	if(!exists("g_drawingStatusPara"))
+		InitPara("")
+	endif
+end
+
 Function InitPara(ctrlname):buttoncontrol
 	string ctrlname
 	//it is better to add a alert here
@@ -59,7 +66,7 @@ Function InitPara(ctrlname):buttoncontrol
 	Variable/G g_insertFlag=0
 //	Variable/G g_initTime=0
 	Variable/G g_cycleToTime=1000
-	Variable/G g_peakInfoDimension=8
+	Variable/G g_peakInfoDimension=9
 //	Variable/G g_jumpInfoDimension=3
 	NewDataFolder root:constSpeed 
 	NewDataFolder root:constForce
@@ -407,8 +414,9 @@ Function modeSpliter(ctrlname):buttoncontrol
 		endswitch
 	endfor
 	if(constSpeedFlag)
-		refreshWaves("")
+		
 		execute "ConstSpeedAnalysis()"
+		refreshWaves("")
 	endif
 end
 
@@ -454,10 +462,10 @@ Function constForceRecorder(startFlag,endFlag,preForce)
 	tempTime/=cycleToTime
 	startTime=temptime[0]
 	tempTime-=startTime
-	Note/NOCR temptime, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
-	Note/NOCR temptension, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
-	Note/NOCR tempdistance, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
-	Note/NOCR tempdistance,"begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"startpos="+num2str(startFlag)+";"
+	Note/NOCR temptime, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
+	Note/NOCR temptension, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
+	Note/NOCR tempdistance, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
+	Note/NOCR tempdistance,"begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"startpos="+num2str(startFlag)+";"
 	if(insertFlag)//if(isInserted)
 		SetScale/P x,0,temptime[numpnts(temptime)-1]/(numpnts(temptime)-1),temptension,tempdistance
 //		isForceSetScale=1
@@ -601,9 +609,9 @@ Function constPullSpeedRecorder(startFlag,endFlag,directionFlag)
 //		PullingSpeed=abs((tempdistance[numpnts(tempdistance)-1]-tempdistance[0])/temptime[numpnts(temptime)-1])
 		linearFitting(tempdistance,temptime,0,numpnts(tempdistance),rP)
 		PullingSpeed=abs(rp[1])
-		Note/NOCR temptime, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((temptimestart)/cycleToTime)+";"+"pulling_speed="+num2str(PullingSpeed)+";A=0;B=0;"
-		Note/NOCR temptension, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((temptimestart)/cycleToTime)+";"+"pulling_speed="+num2str(PullingSpeed)+";A=0;B=0;"
-		Note/NOCR tempdistance, "begin_at="+num2str(startFlag)+";"+"end_at="+num2str(endFlag)+";"+"start_time="+num2str((temptimestart )/cycleToTime)+";"+"pulling_speed="+num2str(PullingSpeed)+";A=0;B=0;"
+		Note/NOCR temptime, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((temptimestart)/cycleToTime)+";"+"pulling_speed="+num2str(PullingSpeed)+";A=0;B=0;"
+		Note/NOCR temptension, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((temptimestart)/cycleToTime)+";"+"pulling_speed="+num2str(PullingSpeed)+";A=0;B=0;"
+		Note/NOCR tempdistance, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((temptimestart )/cycleToTime)+";"+"pulling_speed="+num2str(PullingSpeed)+";A=0;B=0;"
 		Make/O/N=(0,peakInfoDimension) $"root:constSpeed:Peak_Info_"+directionStr+num2str(numConstSpeed)
 		if(insertFlag)//if(isInserted)
 			SetScale/P x,0,temptime[numpnts(temptime)-1]/(numpnts(temptime)-1),temptension,tempdistance
@@ -787,4 +795,21 @@ Function extractStiffnessParameters(yforcename)
 	display/N=stf stiffnessy vs stiffnessx
 	ModifyGraph mode=3
 	CurveFit/NTHR=0 line  stiffnessy /X=stiffnessx /D 
+end
+
+Function/S num2str_precise(num)////only for integer
+	variable num
+	string str
+	variable temp
+	num=floor(num)
+	str=""
+	if(num==0)
+		return "0"
+	endif
+	for(;num>0;)
+		temp=num-floor(num/10)*10
+		str=num2str(temp)+str
+		num=(num-temp)/10
+	endfor
+	return str
 end
