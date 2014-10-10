@@ -3,6 +3,8 @@
 #include ":constspeed_ne"
 #include ":autofind"
 #include ":setpara"
+#include ":separator"
+#include ":mysmooth"
 
 
 
