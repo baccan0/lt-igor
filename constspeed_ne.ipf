@@ -438,14 +438,19 @@ Function refreshWaves(ctrlname):buttoncontrol
 	
 	Make/O/N=(inboxNum,1,2) root:g_waveBoxSelect
 	wave waveBoxSelect= root:g_waveBoxSelect
+	waveBoxSelect=0
 	waveBoxSelect[0][0][0]=1
 	Variable ii=0
 	for(;ii<inboxnum;ii+=1)
 		waveBox[ii]=StringFromList(ii, inboxlist, ";");
-	endfor		
-	Make/O/T/N=1 root:g_panelDrawingList
-	wave/T drawinglist=root:g_panelDrawingList
-	drawinglist[0]=waveBox[0]
+	endfor
+	if(inboxnum>0)		
+		Make/O/T/N=1 root:g_panelDrawingList
+		wave/T drawinglist=root:g_panelDrawingList
+		drawinglist[0]=waveBox[0]
+	else
+		cleardrawinglist()
+	endif
 	SetDataFolder root:
 	drawPanelGraph()
 end
@@ -1326,6 +1331,10 @@ Function getScreenSize(left,right,top,bottom)
 	top=V_top
 	movewindow 1,1,1,1
 	Dowindow/K getscreensizewin
+end
+
+Function clearDrawinglist()
+	make/O/T/N=0 root:g_panelDrawingList
 end
 
 
