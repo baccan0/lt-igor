@@ -1,45 +1,82 @@
 #pragma rtGlobals=1		// Use modern global access method.
 
-Window Autodetectpeaks() : Panel
-	PauseUpdate; Silent 1		// building window...
-	NewPanel /W=(1289,219,1585,569)
-	ShowTools
-	SetDrawLayer UserBack
-	SetDrawEnv linethick= 2,dash= 1
-	DrawLine 1,38,257,38
-	SetDrawEnv linethick= 2,dash= 1
-	DrawLine 4,311,260,311
-	checkIfInit()
-	Button button1,pos={6,8},size={130,18},proc=InitPara,title="Init Parameters"
-	Button button3,pos={6,50},size={130,18},proc=chooseFile,title="Choose File"
-	Button button2,pos={1,120},size={130,18},proc=LoadLTFiles1,title="Loadfile(with skips)"
-	Button button5,pos={133,120},size={130,18},proc=LoadLTFiles2,title="Loadfile(no skips)"
-	Button button4,pos={8,320},size={92,19},proc=modespliter,title="Split"
-	SetVariable setvar1,pos={10,204},size={157,18},title="CycleCount"
-	SetVariable setvar1,value= g_cyclecountName
-	SetVariable setvar6,pos={25,232},size={141,18},proc=avgDistChg,title="A_dist_Y"
-	SetVariable setvar6,value= g_AdistName
-	SetVariable setvar2,pos={24,259},size={144,18},proc=avgDistChg,title="B_dist_Y"
-	SetVariable setvar2,value= g_BdistName
-	SetVariable setvar3,pos={28,151},size={139,18},title="Tension"
-	SetVariable setvar3,value= g_TensionName
-	SetVariable setvar4,pos={38,177},size={128,18},title="Status"
-	SetVariable setvar4,value= g_StatusName
-	SetVariable setvar5,pos={8,287},size={161,18},title="AverageDist"
-	SetVariable setvar5,value= g_averagedistName
-	SetVariable setvar7,pos={11,71},size={220,18},title="File Path"
-	SetVariable setvar7,value= g_filePath
-	SetVariable setvar8,pos={5,94},size={226,18},title="FileName",value= g_fileName
-EndMacro
+Window startAnalysis():Panel
+	invokeLoadingPanel()
+end
 
-Window InsertingAritificialPoints() : Panel
-	PauseUpdate; Silent 1		// building window...
-	NewPanel /W=(286,294,528,377)
-	SetVariable highspeedVar,pos={12,20},size={100,18},title="highspeed",value=root:g_highspeed
-	SetVariable lowspeedVar,pos={127,20},size={100,18},title="lowspeed",value=root:g_lowspeed
-	CheckBox InsertPointChkBox,pos={53,52},size={130,18},title="insert artificial points",value=root:g_insertFlag,proc=ifInsertArtificial
-//	Button InsertPointButton,pos={53,52},size={130,18},proc=insertArtificial,title="Start inserting"
-EndMacro
+//Window Autodetectpeaks() : Panel
+//	PauseUpdate; Silent 1		// building window...
+//	NewPanel /W=(1289,219,1585,569)
+//	ShowTools
+//	SetDrawLayer UserBack
+//	SetDrawEnv linethick= 2,dash= 1
+//	DrawLine 1,38,257,38
+//	SetDrawEnv linethick= 2,dash= 1
+//	DrawLine 4,311,260,311
+//	checkIfInit()
+//	Button button1,pos={6,8},size={130,18},proc=InitPara,title="Init Parameters"
+//	Button button3,pos={6,50},size={130,18},proc=chooseFile,title="Choose File"
+//	Button button2,pos={1,120},size={130,18},proc=LoadLTFiles1,title="Loadfile(with skips)"
+//	Button button5,pos={133,120},size={130,18},proc=LoadLTFiles2,title="Loadfile(no skips)"
+//	Button button4,pos={8,320},size={92,19},proc=modespliter,title="Split"
+//	SetVariable setvar1,pos={10,204},size={157,18},title="CycleCount"
+//	SetVariable setvar1,value= g_cyclecountName
+//	SetVariable setvar6,pos={25,232},size={141,18},proc=avgDistChg,title="A_dist_Y"
+//	SetVariable setvar6,value= g_AdistName
+//	SetVariable setvar2,pos={24,259},size={144,18},proc=avgDistChg,title="B_dist_Y"
+//	SetVariable setvar2,value= g_BdistName
+//	SetVariable setvar3,pos={28,151},size={139,18},title="Tension"
+//	SetVariable setvar3,value= g_TensionName
+//	SetVariable setvar4,pos={38,177},size={128,18},title="Status"
+//	SetVariable setvar4,value= g_StatusName
+//	SetVariable setvar5,pos={8,287},size={161,18},title="AverageDist"
+//	SetVariable setvar5,value= g_averagedistName
+//	SetVariable setvar7,pos={11,71},size={220,18},title="File Path"
+//	SetVariable setvar7,value= g_filePath
+//	SetVariable setvar8,pos={5,94},size={226,18},title="FileName",value= g_fileName
+//EndMacro
+
+//Window InsertingAritificialPoints() : Panel
+//	PauseUpdate; Silent 1		// building window...
+//	NewPanel /W=(286,294,528,377)
+//	SetVariable highspeedVar,pos={12,20},size={100,18},title="highspeed",value=root:g_highspeed
+//	SetVariable lowspeedVar,pos={127,20},size={100,18},title="lowspeed",value=root:g_lowspeed
+//	CheckBox InsertPointChkBox,pos={53,52},size={130,18},title="insert artificial points",value=root:g_insertFlag,proc=ifInsertArtificial
+////	Button InsertPointButton,pos={53,52},size={130,18},proc=insertArtificial,title="Start inserting"
+//EndMacro
+
+Function invokeLoadingPanel()
+	variable left,right,top,bottom
+	if(!ifExisted("Loading"))
+		checkIfInit()
+		NVAR iflag=root:g_insertFlag
+		getscreensize(left,right,top,bottom)
+		Display /W=(left+50,top,right-50,300)/N=Loading/K=1
+		NewPanel /W=(0,0,520,65) /N=P0 /HOST=#
+		Button l_init,pos={8,7},size={53,55},proc=InitPara,title="Init Paras"
+		Button l_selectFile,pos={95,57},size={65,18},proc=chooseFile,title="Select File"
+		Button l_loadwithskips,pos={175,57},size={65,18},proc=LoadLTFiles1,title="Load(with#)"
+		Button l_loadwithoutskips,pos={255,57},size={65,18},proc=LoadLTFiles2,title="Load(no#)"
+		SetVariable l_filePath,pos={101,11},size={220,18},title="File Path",value= g_filePath
+		SetVariable l_fileName,pos={95,32},size={226,18},title="FileName",value= g_fileName
+		SetVariable highspeedVar,pos={340,12},size={100,18},title="highspeed",value=root:g_highspeed
+		SetVariable lowspeedVar,pos={341,34},size={100,18},title="lowspeed",value=root:g_lowspeed
+		CheckBox InsertPointChkBox,pos={343,59},size={100,18},title="insert points",value=iflag,proc=ifInsertArtificial
+		Button l_stiffness,pos={450,10},size={65,18},proc=findstiffness,title="stiffness"
+		SetVariable l_complianceA,pos={450,34},size={70,18},title="com_A",value= root:g_complianceA
+		SetVariable l_complianceB,pos={450,59},size={70,18},title="com_B",value= root:g_complianceB
+		Button l_calibrate,pos={530,10},size={65,18},title="calibrate",proc=calibrateTension
+		Button l_autosplit,pos={600,10},size={65,18},proc=modespliter,title="Auto-Split"
+		Button cursorMove_dualleft,pos={530,34},size={20,18},title="<<",proc=cursorMove
+		Button cursorMove_left,pos={555,34},size={20,18},title="<",proc=cursorMove
+		Button cursorMove_twoway,pos={580,34},size={20,18},title="<>",proc=cursorMove
+		Button cursorMove_right,pos={605,34},size={20,18},title=">",proc=cursorMove
+		Button cursorMove_dualright,pos={630,34},size={20,18},title=">>",proc=cursorMove
+		Button l_saveother,pos={530,59},size={65,18},title="save",proc=saveother
+		SetActiveSubwindow ##
+	endif
+	displayLoadedData()
+end
 
 Function checkIfInit()
 	if(!exists("g_drawingStatusPara"))
@@ -50,16 +87,17 @@ end
 Function InitPara(ctrlname):buttoncontrol
 	string ctrlname
 	//it is better to add a alert here
-	String/G g_cyclecountName="NA"
-	String/G g_AdistName="NA"
-	String/G g_BdistName="NA"
-	String/G g_StatusName="NA"
-	String/G g_TensionName="NA"
+	String/G g_cyclecountName="CycleCount"
+	String/G g_AdistName="A_dist_Y"
+	String/G g_BdistName="B_dist_Y"
+	String/G g_StatusName="Status"
+	String/G g_TensionName="Tension"
 	String/G g_filePath="E:\\"
 	String/G g_fileName="hp2A"
-	String/G g_averagedistName="NA"
+	String/G g_averagedistName="averageDist"
 	Variable/G g_numConstSpeed=0
 	Variable/G g_numConstForce=0
+	Variable/G g_numOther=0
 	Variable/G g_highspeed=1
 	Variable/G g_lowspeed=100
 	Variable/G g_ncolumn=0
@@ -68,9 +106,10 @@ Function InitPara(ctrlname):buttoncontrol
 	Variable/G g_cycleToTime=1000
 	Variable/G g_peakInfoDimension=9
 //	Variable/G g_jumpInfoDimension=3
-	NewDataFolder root:constSpeed 
-	NewDataFolder root:constForce
-	NewDataFolder root:display
+	NewDataFolder/O root:constSpeed 
+	NewDataFolder/O root:constForce
+	NewDataFolder/O root:display
+	NewDataFolder/O root:other
 	initConstSpeedPara()
 end
 
@@ -242,63 +281,70 @@ Function loadLTFiles(ismodified)
 	FReadLine refNum, buffer
 	Close refNum
 	ii=0
-	tags=StringFromList(ii, buffer, "\t")
-	do
+	do		
+		tags=StringFromList(ii, buffer, "\t")
 		tags=RemoveEnding(tags,"\r")
 		strswitch(tags)
-		case   "CycleCount/n":
-			cyclecountName=fileNameNoExtent+num2str(ii)
-		break
-		case    "A_dist-Y":
-			AdistName=fileNameNoExtent+num2str(ii)
-		break
-		case    "B_dist-Y":
-			BdistName=fileNameNoExtent+num2str(ii)
-		break
-		case    "Status":
-			StatusName=fileNameNoExtent+num2str(ii)
-		break
-		case   "Tension":
-			TensionName=fileNameNoExtent+num2str(ii)
-		break
+			case   "CycleCount/n":
+				duplicate/O $fileNameNoExtent+num2str(ii),CycleCount
+				KillWaves /Z $fileNameNoExtent+num2str(ii)
+			break
+			case "":
+			break
+			case "A_dist-Y":
+				duplicate/O $fileNameNoExtent+num2str(ii),A_dist_Y
+				KillWaves /Z $fileNameNoExtent+num2str(ii)
+			break
+			case "B_dist-Y":
+				duplicate/O $fileNameNoExtent+num2str(ii),B_dist_Y
+				KillWaves /Z $fileNameNoExtent+num2str(ii)
+			break
+			default:
+				duplicate/O $fileNameNoExtent+num2str(ii),$tags
+				KillWaves /Z $fileNameNoExtent+num2str(ii)
+			break
 		endswitch
 		ii+=1
-		tags=StringFromList(ii, buffer, "\t")
-	while(strlen(tags)>0)
-	AveragedistName=fileNameNoExtent+"-1"	
+	while(strlen(tags)>0)	
 	
-	displayLoadedData(fileNameNoExtent)
+	KillDataFolder/Z root:constSpeed
+	NewDataFolder/O root:constSpeed //clear folder for holding new data
+	KillDataFolder/Z root:constForce
+	NewDataFolder/O root:constforce//clear folder for holding new data
+	KillDataFolder/Z root:other
+	NewDataFolder/O root:other //clear folder for holding new data
 	
+	displayLoadedData()
 //	if(V_flag>0)  //it is better to reset something here, such as Num of force extension curve
 //		
 //	endif	
 end
 
-Function displayLoadedData(fileNameNoExtent)
-		string fileNameNoExtent
-		NVAR n_column=root:g_ncolumn
+Function displayLoadedData()
+	try
+	//	NVAR n_column=root:g_ncolumn
 		SVAR averagedistName=root:g_averagedistName
 		SVAR AdistName=root:g_AdistName
 		SVAR BdistName=root:g_BdistName
 		SVAR StatusName=root:g_StatusName
 		SVAR TensionName=root:g_TensionName
 		SVAR cyclecountName=root:g_cyclecountName
-		Variable ii	
-		DoWindow /F Loaded_Data
-		if(V_flag>0)
-			DoWindow /K Loaded_Data
+		if(ifExisted("Loading"))
+			//Edit/N=Loaded_Data
+			//AppendToTable/W=Loaded_Data $averdistName,
+			Make/O 	$AveragedistName
+			duplicate/O $AdistName $AveragedistName
+			avgDistChg("",0,"","");
+			clearAll("Loading")
+			appendToGraph /W=Loading $"root:"+TensionName vs $"root:"+cyclecountName
+			appendToGraph /W=Loading /R $"root:"+averagedistName vs $"root:"+cyclecountName
+			modifygraph RGB(averageDist)=(0,0,65535)
+			Make/O/N=0 root:trackPosY
+			Make/O/N=0 root:trackPosX
+			appendtograph/W=Loading root:trackPosY vs root:trackPosX
 		endif
-		Edit/N=Loaded_Data
-		for(ii=0;ii<n_column;ii+=1)
-			AppendToTable/W=Loaded_Data $fileNameNoExtent+num2str(ii)
-		endfor
-		Make/O 	$AveragedistName
-		duplicate/O $AdistName $AveragedistName
-		avgDistChg("",0,"","");
-		display/N=TensionTimeTrace $"root:"+TensionName vs $"root:"+cyclecountName
-		Make/O/N=0 root:trackPosY
-		Make/O/N=0 root:trackPosX
-		appendtograph/W=TensionTimeTrace root:trackPosY vs root:trackPosX
+	catch
+	endtry
 end
 
 Function avgDistChg(ctrlName,varNum,varStr,varName):SetVariableControl
@@ -360,9 +406,9 @@ Function modeSpliter(ctrlname):buttoncontrol
 	numConstSpeed=0 //reset number of curves to zero
 	numConstForce=0
 	KillDataFolder/Z root:constSpeed
-	NewDataFolder root:constSpeed //clear folder for holding new data
+	NewDataFolder/O root:constSpeed //clear folder for holding new data
 	KillDataFolder/Z root:constForce
-	NewDataFolder root:constForce
+	NewDataFolder/O root:constForce
 	Variable i,n
 	i=0
 	n=numpnts(StatusWave)
@@ -420,6 +466,68 @@ Function modeSpliter(ctrlname):buttoncontrol
 	endif
 end
 
+Function saveother(ctrlname):buttoncontrol
+	string ctrlname
+	variable count=0
+	string tempstr=CsrInfo(A,"Loading")
+	string tracea=StringByKey("TNAME",tempstr,":",";")
+	variable pointa = -1
+	variable left
+	if(cmpstr(tracea,""))
+		pointa= NumberByKey("POINT",tempstr,":",";")
+		count+=1
+	endif
+	tempstr=CsrInfo(B,"Loading")
+	string traceb=StringByKey("TNAME",tempstr,":",";")
+	variable pointb = -1
+	if(cmpstr(traceb,""))
+		pointb= NumberByKey("POINT",tempstr,":",";")
+		count+=2
+	endif
+	if(count==3)
+		otherRecorder(min(pointa,pointb),max(pointa,pointb))
+	endif	
+end
+
+Function otherRecorder(startFlag,endFlag)
+	Variable startFlag,endFlag
+	SVAR averagedistName=root:g_averagedistName
+	SVAR StatusName=root:g_StatusName
+	SVAR TensionName=root:g_TensionName
+	SVAR cyclecountName=root:g_cyclecountName
+	Wave averagedistWave=$averagedistName
+	Wave StatusWave=$StatusName
+	Wave TensionWave=$TensionName
+	Wave cyclecountWave=$cyclecountName
+	NVAR numother=root:g_numOther
+	NVAR insertFlag=root:g_insertFlag
+	NVAR cycleToTime=root:g_cycleToTime
+	NVAR infodimension=root:g_peakInfoDimension
+	variable st,starttime
+	duplicate/O/R=[startFlag,endFlag] averagedistWave $"root:other:Distance_"+num2str(numother)
+	duplicate/O/R=[startFlag,endFlag] TensionWave $"root:other:Tension_"+num2str(numother)
+	duplicate/O/R=[startFlag,endFlag] cyclecountWave $"root:other:Time_"+num2str(numother)
+	Wave temptime=$"root:other:Time_"+num2str(numother)
+	Wave tempdistance=$"root:other:Distance_"+num2str(numother)
+	Wave temptension=$"root:other:Tension_"+num2str(numother)
+	st=temptime[0]
+	if(insertFlag)
+		insertArtificial(temptime,tempdistance,temptension)
+	endif
+	tempTime/=cycleToTime
+	startTime=temptime[0]
+	tempTime-=startTime
+	Note/NOCR temptime, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"
+	Note/NOCR temptension, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"
+	Note/NOCR tempdistance, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"
+	Note/NOCR tempdistance,"startpos="+num2str(startFlag)+";"
+	if(insertFlag)//if(isInserted)
+		SetScale/P x,0,temptime[numpnts(temptime)-1]/(numpnts(temptime)-1),temptension,tempdistance
+//		isForceSetScale=1
+	endif
+	Make/O/N=(0,infodimension) $"root:other:Peak_Info_"+num2str(numother)
+end
+
 Function constForceRecorder(startFlag,endFlag,preForce)
 	Variable startFlag,endFlag,preForce
 	SVAR averagedistName=root:g_averagedistName
@@ -465,7 +573,7 @@ Function constForceRecorder(startFlag,endFlag,preForce)
 	Note/NOCR temptime, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
 	Note/NOCR temptension, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
 	Note/NOCR tempdistance, "begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"start_time="+num2str((st)/cycleToTime)+";"+"force="+num2str(aveForce)+";"+"previous_force="+num2str(preForce)+";"
-	Note/NOCR tempdistance,"begin_at="+num2str_precise(startFlag)+";"+"end_at="+num2str_precise(endFlag)+";"+"startpos="+num2str(startFlag)+";"
+	Note/NOCR tempdistance,"startpos="+num2str(startFlag)+";"
 	if(insertFlag)//if(isInserted)
 		SetScale/P x,0,temptime[numpnts(temptime)-1]/(numpnts(temptime)-1),temptension,tempdistance
 //		isForceSetScale=1
@@ -625,6 +733,20 @@ Function square(s)
 	return s*s
 end
 
+Function calibrateTension(ctrlname):buttoncontrol
+	string ctrlname
+	string tempstr=CsrInfo(A,"Loading")
+	string tracename=StringByKey("TNAME",tempstr,":",";")
+	tempstr=CsrInfo(B,"Loading")
+	if(!cmpstr(tracename,StringByKey("TNAME",tempstr,":",";")))
+		if(exists("X_Force"))
+			calibrateForces2("X_Force","Y_Force","Z_Force")
+		else
+			calibrateForces("Y_Force")
+		endif
+	endif
+end
+
 Function calibrateForces(yforceName)
 	string yforcename
 	SVAR TensionName=root:g_TensionName
@@ -648,7 +770,7 @@ Function calibrateForces(yforceName)
 	endfor
 end
 
-Function calibrateForces2(yforceName,xforceName,zforceName)
+Function calibrateForces2(xforceName,yforceName,zforceName)
 	string yforcename,xforceName,zforceName
 	SVAR TensionName=root:g_TensionName
 	wave tensionwave = $TensionName
@@ -674,7 +796,7 @@ Function calibrateForces2(yforceName,xforceName,zforceName)
 	endfor
 end
 
-Function calibrateForces3(yforceName,yblankforce,xforceName,xblankforce,zforceName,zblankforce)
+Function calibrateForces3(xforceName,xblankforce,yforceName,yblankforce,zforceName,zblankforce)
 	string yforcename,xforceName,zforceName
 	variable xblankforce,yblankforce,zblankforce
 	SVAR TensionName=root:g_TensionName
@@ -689,12 +811,19 @@ Function calibrateForces3(yforceName,yblankforce,xforceName,xblankforce,zforceNa
 	endfor
 end
 
+Function findstiffness(ctrlname):buttoncontrol
+	string ctrlname
+	extractStiffnessParameters("Y_Force")
+end
+
 Function extractStiffnessParameters(yforcename)
 	string yforcename
 	SVAR cyclecntname=root:g_cyclecountname
 	SVAR adistname=root:g_AdistName
 	SVAR bdistname=root:g_BdistName
 	SVAR statusname=root:g_StatusName
+	Nvar com_a=root:g_complianceA
+	Nvar com_b=root:g_complianceB
 	wave yforcewave=$yforcename
 	wave cyclecntwave=$cyclecntname
 	wave adistwave=$adistname
@@ -711,10 +840,12 @@ Function extractStiffnessParameters(yforcename)
 	n=numpnts(cyclecntwave)
 	i=0
 	pulsenum=0
+	variable flag=0
 	print "CycleCount   yForce(pN)   distA(nm)  distB(nm)   HiPulses   LoPulses"
 	do
 		temp=statuswave[i]-4000
 		if(temp>-1e-5 && temp<=1000 && pulsenum<101)
+			flag=1
 			if(statuswave[i]==statuswave[i-risetime+1] )
 				
 				j=0
@@ -784,17 +915,24 @@ Function extractStiffnessParameters(yforcename)
 		endif
 		i+=1
 	while(i<n)
-	make/O/N=(numpnts(stf)/6) root:stiffnessx
-	make/O/N=(numpnts(stf)/6) root:stiffnessy
-	wave stfx=root:stiffnessx
-	wave stfy=root:stiffnessy
-	for(i=0;i<numpnts(stf)/6;i+=1)
-		stfx[i]=stf[i][1]
-		stfy[i]=1/(2/stf[i][2]+2/stf[i][3])
-	endfor
-	display/N=stf stiffnessy vs stiffnessx
-	ModifyGraph mode=3
-	CurveFit/NTHR=0 line  stiffnessy /X=stiffnessx /D 
+	if(flag)
+		make/O/N=(numpnts(stf)/6) root:stiffnessx
+		make/O/N=(numpnts(stf)/6) root:stiffnessy
+		wave stfx=root:stiffnessx
+		wave stfy=root:stiffnessy
+		for(i=0;i<numpnts(stf)/6;i+=1)
+			stfx[i]=stf[i][1]
+			stfy[i]=1/(2/stf[i][2]+2/stf[i][3])
+		endfor
+		display/N=stf stiffnessy vs stiffnessx
+		ModifyGraph mode=3
+		CurveFit/NTHR=0 line  stiffnessy /X=stiffnessx /D 
+		wave coef=root:W_coef
+		com_a=coef[0]
+		com_b=coef[1]
+	else
+		print "None"
+	endif
 end
 
 Function/S num2str_precise(num)////only for integer
@@ -812,4 +950,107 @@ Function/S num2str_precise(num)////only for integer
 		num=(num-temp)/10
 	endfor
 	return str
+end
+
+Function cursorMove(ctrlname):buttoncontrol
+	string ctrlname
+	variable count=0
+	string tempstr=CsrInfo(A,"Loading")
+	string tracea=StringByKey("TNAME",tempstr,":",";")
+	variable pointa = -1
+	variable left
+	if(cmpstr(tracea,""))
+		pointa= NumberByKey("POINT",tempstr,":",";")
+		count+=1
+	endif
+	tempstr=CsrInfo(B,"Loading")
+	string traceb=StringByKey("TNAME",tempstr,":",";")
+	variable pointb = -1
+	if(cmpstr(traceb,""))
+		pointb= NumberByKey("POINT",tempstr,":",";")
+		count+=2
+	endif
+	if(count==3)
+		if(!cmpstr(tracea,traceb))
+			strswitch(ctrlname)
+				case "cursorMove_dualleft":
+					pointa=slidecursor("root:status",pointa,-1)
+					pointb=slidecursor("root:status",pointb,-1)
+					break
+				case "cursorMove_dualright":
+					pointa=slidecursor("root:status",pointa,1)
+					pointb=slidecursor("root:status",pointb,1)
+					break
+				case "cursorMove_left":
+					if(pointb>pointa)
+						pointa=slidecursor("root:status",pointa,-1)
+					else
+						pointb=slidecursor("root:status",pointb,-1)
+					endif
+					break
+				case "cursorMove_right":
+					if(pointb<pointa)
+						pointa=slidecursor("root:status",pointa,1)
+					else
+						pointb=slidecursor("root:status",pointb,1)
+					endif
+					break
+				case "cursorMove_twoway":
+					if(pointb>pointa)
+						pointa=slidecursor("root:status",pointa,-1)
+						pointb=slidecursor("root:status",pointb,1)
+					else
+						pointb=slidecursor("root:status",pointb,-1)
+						pointa=slidecursor("root:status",pointa,1)
+					endif
+					break
+			endswitch
+			cursor/W=Loading A,$tracea,pointa
+			cursor/W=Loading B,$traceb,pointb
+		endif
+	elseif(count!=0)
+		strswitch(ctrlname)
+			case "cursorMove_left":
+			case "cursorMove_dualleft":
+				if(count==1) 
+					cursor/W=Loading A,$tracea,slidecursor("root:status",pointa,-1)
+				else
+					cursor/W=Loading B,$traceb,slidecursor("root:status",pointb,-1)
+				endif
+				break
+			case "cursorMove_right":
+			case "cursorMove_dualright":
+				if(count==1) 
+					cursor/W=Loading A,$tracea,slidecursor("root:status",pointa,1)
+				else
+					cursor/W=Loading B,$traceb,slidecursor("root:status",pointb,1)
+				endif
+				break
+		endswitch
+		
+	endif
+	doupdate
+end
+
+Function slidecursor(followtrace,location,direction)
+	variable location,direction
+	string followtrace
+	wave status=$followtrace
+	variable speedup=1*direction
+	location+=speedup
+	if(location<0)
+		location=0
+	endif
+	if(location>=numpnts(status))
+		location=numpnts(status)-1
+	endif
+	variable i = location
+	string tracename
+	for(;floor(status[i]/1000)==floor(status[location]/1000) && (status[i]&1)==(status[location]&1) ;i+=speedup)
+		if(i<-speedup || i>=numpnts(status)-speedup)
+			break
+		endif
+	endfor
+	
+	return i
 end

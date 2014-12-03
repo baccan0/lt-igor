@@ -247,11 +247,6 @@ Function setInfoItemMerge(name,value):checkboxcontrol
 	endif
 end
 ///////////////////////////////////////////////////helper
-Function ifExisted(name)
-	string name
-	Dowindow/F $name
-	return V_flag
-end
 
 Function rewriteCurrentStatus()
 	wave para=root:g_drawingStatusPara

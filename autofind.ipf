@@ -1,4 +1,5 @@
 #pragma rtGlobals=1		// Use modern global access method.
+
 constant AFCANDIDATE=100///for method 2
 ////method 1 examines and keeps all the data pionts in the range of interest, though I don't thind that is necessary
 ////method 2 also examines all the data points but only keeps top number of AFCANDATE points, then procedure is accelerated

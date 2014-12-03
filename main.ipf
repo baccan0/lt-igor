@@ -5,6 +5,7 @@
 #include ":setpara"
 #include ":separator"
 #include ":mysmooth"
+#include ":dataAnalysis"
 
 
 

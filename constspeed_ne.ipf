@@ -1,4 +1,5 @@
 #pragma rtGlobals=1		// Use modern global access method.
+
 constant NUMWLCFITPARA=4
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////global variable
 Function initConstSpeedPara()
@@ -67,6 +68,7 @@ Function buildAnalysisPanel()
 		Checkbox drawingstatuscheckbox0,pos={5,20},size={65,15},title="CSpeed",value=(status[0][0]==0),proc=drawingStatusSwitch,win=ConstSpeedAnalysis
 		Checkbox drawingstatuscheckbox1,pos={5,40},size={65,15},title="CForce",value=(status[0][0]==1),proc=drawingStatusSwitch,win=ConstSpeedAnalysis
 		Checkbox drawingstatuscheckbox2,pos={5,60},size={65,15},title="Other",value=(status[0][0]==2),proc=drawingStatusSwitch,win=ConstSpeedAnalysis
+		Button deleteTraces,pos={5,100},size={50,15},title="-traces",proc=deletetrace,win=ConstSpeedAnalysis
 		Display/W=(215,12,right-20,bottom-150)/HOST=ConstSpeedAnalysis
 		RenameWindow #,G0
 		SetActiveSubwindow ##
@@ -77,7 +79,6 @@ end
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////hook func
 Function myhook(s)
 	Struct WMWinHookStruct &s
-	NVAR ms=root:g_multiSelec
 	wave status=root:g_drawingStatusPara
 	NVAR sflag=root:g_separatorFlag
 	if(!ifExisted("analyzeSeparator"))
@@ -115,34 +116,45 @@ Function myhook(s)
 				resetItemNum()
 				break
 			case 11:
-				switch(s.keyCode)
-					case 97://a
-						addInfoItem("")
-					break
-					case 100://d
-					delInfoItem("")
-					break
-					case 117://u
-						autoFinditem("")
-					break
-					case 65://F
-						fitOnly("")
-					break
-					case 68://D
-					break
-					case 83://S
-						saveFit("")
-					break
-					case 67://C
-						fitAndCalibrate("")
-					break
-					case 109://m
-						ms=!ms
-					break
-				endswitch
+				shortcut(s.keycode)
 				break
 		endswitch
+				
 	endif
+end
+
+Function shortcut(code)
+	variable code
+	NVAR ms=root:g_multiSelec
+	switch(code)
+		case 97://a
+			addInfoItem("")
+			break
+		case 100://d
+			delInfoItem("")
+			break
+		case 114://r
+			deletetrace("")
+			break
+		case 117://u
+			autoFinditem("")
+			break
+		case 65://F
+			fitOnly("")
+			break
+		case 68://D
+			break
+		case 83://S
+			saveFit("")
+			break
+		case 67://C
+			fitAndCalibrate("")
+			break
+		case 109://m
+			ms=!ms
+			break
+		endswitch
+		
 end
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////ListBox
@@ -179,6 +191,10 @@ Function waveBoxController(LB_Struct):listboxcontrol
 			for(ii=0;ii<n;ii+=1)
 				wbsd[ii]=waveBoxSelect[ii][0][0]
 			endfor
+			break
+		case 12:
+			shortcut(LB_Struct.row)
+			break			
 	endswitch
 end
 
@@ -243,16 +259,32 @@ end
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////Button
 Function setupInfo(ctrlname):buttoncontrol
 	string ctrlname
-	if(!ifExisted("InfoItemSetup"))
 		IISetupFunc()
-	endif
+end
+
+Function deletetrace(ctrlname):buttoncontrol
+	string ctrlname
+	wave/T wavebox=root:g_wavebox
+	wave waveselect=root:g_waveboxselect
+	wave/T drawinglist=root:g_panelDrawingList
+	variable i=0
+	for(;i<numpnts(wavebox);)
+		if(waveselect[i][0][0])
+			deleteATrace(getCurrentDataFolder(),wavebox[i])
+			deletepoints i,1,wavebox
+			deletepoints i,1,waveselect
+		else
+			i+=1
+		endif
+	endfor
+		deletepoints 0,numpnts(drawinglist),drawinglist
+		drawpanelgraph()
+	
 end
 
 Function setupPara(ctrlname):buttoncontrol
 	string ctrlname
-	if(!ifExisted("DrawingStatusSetup"))
 		DSSetupFunc()
-	endif
 end
 
 Function addInfoItem(ctrlname):buttoncontrol
@@ -470,7 +502,7 @@ Function clearAll(graphName)
 	string graphName
 	clearTraces(graphName,"*")
 	KillDataFolder/Z root:display
-	NewDataFolder root:display
+	NewDataFolder/O root:display
 end
 
 Function clearTraces(graphName,recognizer)
@@ -744,7 +776,7 @@ Function updatePanelGraph(controller,isleft,isbottom)
 							doupdate
 							//appendtograph/W=$graphName tempwave;delayUpdate
 							modifygraph/W=$graphName rgb($"WLCFIT"+num2str(count)+"_"+num2str(i))=(32768,0,65535);delayUpdate
-							tag /A=RT /L=1 /Z=0 /B=0 $"WLCFIT"+num2str(count)+"_"+num2str(i),100,"p="+num2str(tempfit[j])+";L="+num2str(tempfit[j+2])+";K="+num2str(tempfit[j+3])
+							tag /W=$graphName /A=RT /L=1 /Z=0 /B=0 $"WLCFIT"+num2str(count)+"_"+num2str(i),100,"p="+num2str(tempfit[j])+";L="+num2str(tempfit[j+2])+";K="+num2str(tempfit[j+3])
 							count+=1
 						endfor
 					endif
@@ -1336,6 +1368,23 @@ end
 Function clearDrawinglist()
 	make/O/T/N=0 root:g_panelDrawingList
 end
+
+Function ifExisted(name)
+	string name
+	Dowindow/F $name
+	return V_flag
+end
+
+Function deleteATrace(folder,tracename)
+	string folder
+	string tracename
+	killWaves/Z $folder+"Tension_"+getSuffix(tracename)
+	killWaves/Z $folder+"Time_"+getSuffix(tracename)
+	killWaves/Z $folder+"Distance_"+getSuffix(tracename)
+	killWaves/Z $folder+"Peak_Info_"+getSuffix(tracename)
+	killWaves/Z $folder+"Fit_"+getSuffix(tracename)
+end
+
 
 
 
